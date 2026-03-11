@@ -23,7 +23,16 @@
 <div id="root"></div>
 <script type="text/babel">
 const GIST_ID = "14820ce1c32ae455ce8890eccf7b27ee";
-const GIST_TOKEN = "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";
+const GIST_ID = "14820ce1c32ae455ce8890eccf7b27ee";
+const GIST_FILE = "project-central.json";
+function getToken() {
+  let t = localStorage.getItem("pc_token");
+  if (!t) {
+    t = prompt("Enter your GitHub token to sync data:");
+    if (t) localStorage.setItem("pc_token", t.trim());
+  }
+  return t ? t.trim() : "";
+}
 const GIST_FILE = "project-central.json";
 
 const STATUS_OPTIONS = ["DONE","IN PROGRESS","PENDING","WAITING","URGENT","TO PLAN"];
@@ -141,11 +150,13 @@ const INIT_BLOCKED = [
   {id:11,what:"Clarify kickoff call: N8N workflow or manual?",why:"Kasper mentioned handling it — confirm whether to build a trigger.",pri:"LOW"},
 ];
 
-// Gist API
 async function loadFromGist() {
+  const token = getToken();
+  if (!token) return null;
   const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    headers: { Authorization: `token ${GIST_TOKEN}`, Accept: "application/vnd.github.v3+json" }
+    headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
   });
+  if (!r.ok) { localStorage.removeItem("pc_token"); throw new Error("Invalid token"); }
   const d = await r.json();
   const content = d.files[GIST_FILE]?.content;
   if (!content) return null;
@@ -155,9 +166,11 @@ async function loadFromGist() {
 }
 
 async function saveToGist(data) {
+  const token = getToken();
+  if (!token) return;
   await fetch(`https://api.github.com/gists/${GIST_ID}`, {
     method: "PATCH",
-    headers: { Authorization: `token ${GIST_TOKEN}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
+    headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
     body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data) } } })
   });
 }
