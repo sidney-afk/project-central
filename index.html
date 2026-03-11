@@ -149,12 +149,21 @@ const INIT_BLOCKED = [
 ];
 
 async function loadFromGist() {
-  const token = getToken();
-  if (!token) return null;
+  const token = localStorage.getItem("pc_token");
+  if (!token) {
+    const t = prompt("Enter your GitHub token to sync data:");
+    if (!t) return null;
+    localStorage.setItem("pc_token", t.trim());
+    return loadFromGist();
+  }
   const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
     headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
   });
-  if (!r.ok) { localStorage.removeItem("pc_token"); throw new Error("Invalid token"); }
+  if (r.status === 401) {
+    localStorage.removeItem("pc_token");
+    throw new Error("Invalid token — please refresh and re-enter your GitHub token.");
+  }
+  if (!r.ok) throw new Error(`GitHub API error: ${r.status}`);
   const d = await r.json();
   const content = d.files[GIST_FILE]?.content;
   if (!content) return null;
@@ -164,13 +173,14 @@ async function loadFromGist() {
 }
 
 async function saveToGist(data) {
-  const token = getToken();
+  const token = localStorage.getItem("pc_token");
   if (!token) return;
-  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+  const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
     method: "PATCH",
     headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
     body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data) } } })
   });
+  if (!r.ok) throw new Error(`Save failed: ${r.status}`);
 }
 
 const { useState, useEffect, useCallback, useRef } = React;
