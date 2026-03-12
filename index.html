@@ -253,7 +253,11 @@ function TaskRow({ t, onStatusChange, onEdit, onDelete, dragHandlers }) {
       style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,border:"1px solid #F1F5F9",background:"#fff",cursor:"default"}}>
       <span onMouseEnter={()=>setDraggable(true)} onMouseLeave={()=>setDraggable(false)}
         style={{color:"#CBD5E1",fontSize:14,cursor:"grab",flexShrink:0,lineHeight:1,userSelect:"none"}}>⠿</span>
-      <div style={{flex:1,fontSize:13,color:col,fontWeight:t.status==="DONE"?400:500}}>{t.task}</div>
+      <div style={{flex:1,fontSize:13,color:col,fontWeight:t.status==="DONE"?400:500,display:"flex",alignItems:"center",gap:6}}>
+        {t.task}
+        {t.link&&<a href={t.link} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} title={t.link}
+          style={{flexShrink:0,fontSize:11,background:"#EEF2FF",color:"#6366F1",borderRadius:6,padding:"2px 7px",fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>🔗 Open</a>}
+      </div>
       <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
         <Avatar name={t.who}/><span style={{fontSize:11,color:"#94A3B8",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.who}</span>
       </div>
@@ -374,16 +378,16 @@ function App() {
     if(!tf.task.trim())return;
     let u;
     if(editT){
-      u=tasks.map(x=>x.id===editT.id?{...x,area:tf.area,task:tf.task,status:tf.status,who:tf.who}:x);
+      u=tasks.map(x=>x.id===editT.id?{...x,area:tf.area,task:tf.task,status:tf.status,who:tf.who,link:tf.link||""}:x);
     } else {
       const at=tasks.filter(t=>t.area===tf.area).sort((a,b)=>a.order-b.order);
       const pos=tf.position==="top"?0:tf.position==="bottom"?at.length:parseInt(tf.position)-1;
-      const nt={id:nextId(tasks),area:tf.area,task:tf.task,status:tf.status,who:tf.who,order:pos+1};
+      const nt={id:nextId(tasks),area:tf.area,task:tf.task,status:tf.status,who:tf.who,link:tf.link||"",order:pos+1};
       const ins=[...at];ins.splice(pos,0,nt);
       const ren=ins.map((t,i)=>({...t,order:i+1}));
       u=[...tasks.filter(t=>t.area!==tf.area),...ren];
     }
-    doSaveT(pipeline,u,blocked);setTf({area:"N8N",task:"",status:"PENDING",who:"",position:"bottom"});setAddTOpen(false);setEditT(null);
+    doSaveT(pipeline,u,blocked);setTf({area:"N8N",task:"",status:"PENDING",who:"",link:"",position:"bottom"});setAddTOpen(false);setEditT(null);
   }
   function submitB(){
     if(!bf.what.trim())return;
@@ -481,7 +485,7 @@ function App() {
                 <AreaSection key={area} area={area}
                   areaTasks={tasks.filter(t=>t.area===area).sort((a,b)=>a.order-b.order)}
                   onStatusChange={(id,v)=>{const u=tasks.map(x=>x.id===id?{...x,status:v}:x);doSaveT(pipeline,u,blocked);}}
-                  onEdit={t=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,position:"bottom"});setEditT(t);setAddTOpen(true);}}
+                  onEdit={t=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,link:t.link||"",position:"bottom"});setEditT(t);setAddTOpen(true);}}
                   onDelete={id=>doSaveT(pipeline,tasks.filter(x=>x.id!==id),blocked)}
                   onReorder={(area,reordered)=>{
                     const u=[...tasks.filter(t=>t.area!==area),...reordered];
@@ -546,6 +550,7 @@ function App() {
           <Field label="Task *" value={tf.task} onChange={v=>setTf(f=>({...f,task:v}))} placeholder="Describe the task" multiline/>
           <FieldSelect label="Status" value={tf.status} onChange={v=>setTf(f=>({...f,status:v}))} options={STATUS_OPTIONS}/>
           <Field label="Who" value={tf.who} onChange={v=>setTf(f=>({...f,who:v}))} placeholder="e.g. Me, Kasper, Editor"/>
+          <Field label="Link (optional)" value={tf.link||""} onChange={v=>setTf(f=>({...f,link:v}))} placeholder="https://docs.google.com/..."/>
           {!editT&&(
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontWeight:600,fontSize:12,color:"#64748B",marginBottom:5,textTransform:"uppercase",letterSpacing:".04em"}}>Position in "{tf.area}"</label>
