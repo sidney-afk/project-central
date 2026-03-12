@@ -48,6 +48,19 @@ const PRI_META = {
 const AREA_ORDER = ["N8N","Email Copy","Landing Page","Onboarding Site","Lead Magnet","Lead Magnet Nurture","Meta Ads","Organic — Tara","ManyChat Funnel","Agency Referrals","Clawdbot","HubSpot / Clients"];
 const AREA_COLORS = {"N8N":"#6366F1","Email Copy":"#8B5CF6","Landing Page":"#3B82F6","Onboarding Site":"#10B981","Lead Magnet":"#A855F7","Lead Magnet Nurture":"#9333EA","Meta Ads":"#0EA5E9","Organic — Tara":"#06B6D4","ManyChat Funnel":"#6366F1","Agency Referrals":"#14B8A6","Clawdbot":"#64748B","HubSpot / Clients":"#F59E0B"};
 
+const INIT_QUICKLINKS = [
+  {id:1,label:"Landing Page",url:""},
+  {id:2,label:"Nurture Emails",url:""},
+  {id:3,label:"Next Steps Email",url:""},
+  {id:4,label:"Onboarding Email",url:""},
+  {id:5,label:"Onboarding Site",url:""},
+  {id:6,label:"Onboarding Form",url:""},
+  {id:7,label:"N8N Workflow",url:""},
+  {id:8,label:"Lead Magnet",url:""},
+  {id:9,label:"Lead Magnet Nurture",url:""},
+  {id:10,label:"Ad Creatives",url:""},
+];
+
 const INIT_PIPELINE = [
   {id:1,title:"Meta Ads",desc:"3 video + 3 static creatives done. Driving traffic to landing page.",done:false},
   {id:2,title:"Organic Content (Tara)",desc:"IG/TikTok real + AI mix. Likeness confirmed, contract signing pending.",done:false},
@@ -312,6 +325,9 @@ function App() {
   const [tab,setTab]=useState("pipeline");
   const [pipeline,setPipeline]=useState([]);
   const [tasks,setTasks]=useState([]);
+  const [quicklinks,setQuicklinks]=useState([]);
+  const [qlOpen,setQlOpen]=useState(false);
+  const [qlForm,setQlForm]=useState({label:"",url:""});
   const saveTimer = useRef(null);
 
   const [addPOpen,setAddPOpen]=useState(false);
@@ -330,14 +346,17 @@ function App() {
         if(data){
           setPipeline(data.pipeline);
           setTasks(data.tasks);
+          setQuicklinks(data.quicklinks||INIT_QUICKLINKS);
         } else {
           setPipeline(INIT_PIPELINE);
           setTasks(INIT_TASKS);
-          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS});
+          setQuicklinks(INIT_QUICKLINKS);
+          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,quicklinks:INIT_QUICKLINKS});
         }
       } catch(e) {
         setPipeline(INIT_PIPELINE);
         setTasks(INIT_TASKS);
+        setQuicklinks(INIT_QUICKLINKS);
         flash("⚠️ Couldn't connect — working offline",false);
       }
       setReady(true);
@@ -356,8 +375,9 @@ function App() {
     }, 800);
   },[]);
 
-  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t}); },[debouncedSave]);
-  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data}); },[debouncedSave]);
+  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,quicklinks}); },[debouncedSave,quicklinks]);
+  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,quicklinks}); },[debouncedSave,quicklinks]);
+  const doSaveQL=useCallback((data)=>{ setQuicklinks(data); debouncedSave({pipeline,tasks,quicklinks:data}); },[debouncedSave,pipeline,tasks]);
 
   const nextId=arr=>Math.max(0,...arr.map(x=>x.id))+1;
   const areas=[...new Set([...AREA_ORDER,...tasks.map(t=>t.area)])];
@@ -427,6 +447,25 @@ function App() {
             <div style={{fontSize:11,color:"#94A3B8"}}>{s.sub}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{maxWidth:980,margin:"0 auto 16px",background:"#fff",borderRadius:12,border:"1px solid #E2E8F0",padding:"12px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:11,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".06em",flexShrink:0}}>Quick Links</span>
+          {quicklinks.map(ql=>(
+            <div key={ql.id} style={{display:"flex",alignItems:"center",gap:2}}>
+              {ql.url
+                ? <a href={ql.url.startsWith("http")?ql.url:"https://"+ql.url} target="_blank" rel="noreferrer"
+                    style={{fontSize:12,fontWeight:600,color:"#6366F1",background:"#EEF2FF",borderRadius:20,padding:"4px 12px",textDecoration:"none",whiteSpace:"nowrap"}}>{ql.label}</a>
+                : <span style={{fontSize:12,fontWeight:600,color:"#CBD5E1",background:"#F8FAFC",borderRadius:20,padding:"4px 12px",whiteSpace:"nowrap",border:"1px dashed #E2E8F0"}}>{ql.label}</span>
+              }
+              <button onClick={()=>{setQlForm({id:ql.id,label:ql.label,url:ql.url});setQlOpen(true);}}
+                style={{background:"none",border:"none",color:"#CBD5E1",cursor:"pointer",fontSize:11,padding:"2px 3px",lineHeight:1}}>✏️</button>
+            </div>
+          ))}
+          <button onClick={()=>{setQlForm({label:"",url:""});setQlOpen(true);}}
+            style={{fontSize:12,fontWeight:600,color:"#94A3B8",background:"none",border:"1.5px dashed #E2E8F0",borderRadius:20,padding:"4px 12px",cursor:"pointer",whiteSpace:"nowrap"}}>+ Add</button>
+        </div>
       </div>
 
       <div className="card" style={{maxWidth:980,margin:"0 auto",borderRadius:16,overflow:"hidden"}}>
@@ -560,6 +599,26 @@ function App() {
           </div>
         </Modal>
       )}
+      {qlOpen&&(
+        <Modal title={qlForm.id?"Edit Link":"Add Link"} onClose={()=>setQlOpen(false)}>
+          <Field label="Label *" value={qlForm.label} onChange={v=>setQlForm(f=>({...f,label:v}))} placeholder="e.g. Landing Page"/>
+          <Field label="URL" value={qlForm.url||""} onChange={v=>setQlForm(f=>({...f,url:v}))} placeholder="https://..."/>
+          <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
+            {qlForm.id&&<button onClick={()=>{doSaveQL(quicklinks.filter(x=>x.id!==qlForm.id));setQlOpen(false);}} style={{background:"none",border:"none",color:"#EF4444",fontWeight:600,fontSize:13,cursor:"pointer",padding:0}}>Delete</button>}
+            <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
+              <Btn variant="ghost" onClick={()=>setQlOpen(false)}>Cancel</Btn>
+              <Btn onClick={()=>{
+                if(!qlForm.label.trim())return;
+                const updated=qlForm.id
+                  ?quicklinks.map(x=>x.id===qlForm.id?{...x,label:qlForm.label,url:qlForm.url}:x)
+                  :[...quicklinks,{id:Math.max(0,...quicklinks.map(x=>x.id))+1,label:qlForm.label,url:qlForm.url}];
+                doSaveQL(updated);setQlOpen(false);
+              }}>Save</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
