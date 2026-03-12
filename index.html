@@ -24,8 +24,8 @@
 <script type="text/babel">
 // ─── JSONBin config ───────────────────────────────────────────────
 // Fill these in after creating your JSONBin account:
-const JSONBIN_ID  = "69b202f7aa77b81da9d8fb1e";   // e.g. "6650f2e9acd3cb34a83f1234"
-const JSONBIN_KEY = "$2a$10$reQRrRbpHt86LUsJk9y9BO5fbidNjk2tLXE6OJzlP68DjSMsuhvxq";   // e.g. "$2a$10$abc..."
+const JSONBIN_ID  = "69b202f7aa77b81da9d8fb1e";
+const JSONBIN_KEY = "$2a$10$reQRrRbpHt86LUsJk9y9BO5fbidNjk2tLXE6OJzlP68DjSMsuhvxq";"
 // ──────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = ["DONE","IN PROGRESS","PENDING","WAITING","URGENT","TO PLAN"];
@@ -371,8 +371,8 @@ function App() {
 
   function submitP(){
     if(!pf.title.trim())return;
-    const u=editP?pipeline.map(x=>x.id===editP.id?{...x,...pf}:x):[...pipeline,{id:nextId(pipeline),...pf}];
-    doSaveP(u,tasks,blocked);setPf({title:"",desc:"",done:false});setAddPOpen(false);setEditP(null);
+    const u=editP?pipeline.map(x=>x.id===editP.id?{...x,...pf,link:pf.link||""}:x):[...pipeline,{id:nextId(pipeline),...pf,link:pf.link||""}];
+    doSaveP(u,tasks,blocked);setPf({title:"",desc:"",done:false,link:""});setAddPOpen(false);setEditP(null);
   }
   function submitT(){
     if(!tf.task.trim())return;
@@ -391,8 +391,8 @@ function App() {
   }
   function submitB(){
     if(!bf.what.trim())return;
-    const u=editB?blocked.map(x=>x.id===editB.id?{...x,...bf}:x):[...blocked,{id:nextId(blocked),...bf}];
-    doSaveB(pipeline,tasks,u);setBf({what:"",why:"",pri:"HIGH"});setAddBOpen(false);setEditB(null);
+    const u=editB?blocked.map(x=>x.id===editB.id?{...x,...bf,link:bf.link||""}:x):[...blocked,{id:nextId(blocked),...bf,link:bf.link||""}];
+    doSaveB(pipeline,tasks,u);setBf({what:"",why:"",pri:"HIGH",link:""});setAddBOpen(false);setEditB(null);
   }
 
   const selAreaTasks=tasks.filter(t=>t.area===tf.area).sort((a,b)=>a.order-b.order);
@@ -461,12 +461,15 @@ function App() {
                   <div key={p.id} className="row-hover" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"1.5px solid",borderColor:p.done?"#BBFBD0":"#E2E8F0",background:p.done?"#F0FDF4":"#fff"}}>
                     <div style={{width:28,height:28,borderRadius:"50%",background:p.done?"#16A34A":"#E2E8F0",color:p.done?"#fff":"#94A3B8",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{p.done?"✓":i+1}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:13,color:p.done?"#15803D":"#0F172A"}}>{p.title}</div>
+                      <div style={{fontWeight:600,fontSize:13,color:p.done?"#15803D":"#0F172A",display:"flex",alignItems:"center",gap:6}}>
+                        {p.title}
+                        {p.link&&<a href={p.link} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} title={p.link} style={{flexShrink:0,fontSize:11,background:"#EEF2FF",color:"#6366F1",borderRadius:6,padding:"2px 7px",fontWeight:600,textDecoration:"none"}}>🔗 Open</a>}
+                      </div>
                       <div style={{fontSize:12,color:"#94A3B8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.desc}</div>
                     </div>
                     <StatusPill value={p.done?"DONE":"PENDING"} onChange={v=>{const u=pipeline.map(x=>x.id===p.id?{...x,done:v==="DONE"}:x);doSaveP(u,tasks,blocked);}} options={["DONE","PENDING"]}/>
                     <div style={{display:"flex",gap:4}}>
-                      <IconBtn onClick={()=>{setPf({title:p.title,desc:p.desc,done:p.done});setEditP(p);setAddPOpen(true);}} icon="✏️"/>
+                      <IconBtn onClick={()=>{setPf({title:p.title,desc:p.desc,done:p.done,link:p.link||""});setEditP(p);setAddPOpen(true);}} icon="✏️"/>
                       <IconBtn onClick={()=>doSaveP(pipeline.filter(x=>x.id!==p.id),tasks,blocked)} icon="🗑️" color="#EF4444"/>
                     </div>
                   </div>
@@ -500,19 +503,22 @@ function App() {
             <>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                 <div><div style={{fontWeight:700,fontSize:15}}>Blockers</div><div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>What needs to happen before we can move forward</div></div>
-                <Btn onClick={()=>{setBf({what:"",why:"",pri:"HIGH"});setEditB(null);setAddBOpen(true);}}>+ Add Blocker</Btn>
+                <Btn onClick={()=>{setBf({what:"",why:"",pri:"HIGH",link:""});setEditB(null);setAddBOpen(true);}}>+ Add Blocker</Btn>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {blocked.map((b,i)=>(
                   <div key={b.id} className="row-hover" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"1.5px solid #FEE2E2",background:"#FFF9F9"}}>
                     <div style={{width:22,height:22,borderRadius:"50%",background:"#FEE2E2",color:"#EF4444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:13}}>{b.what}</div>
+                      <div style={{fontWeight:600,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+                        {b.what}
+                        {b.link&&<a href={b.link} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} title={b.link} style={{flexShrink:0,fontSize:11,background:"#EEF2FF",color:"#6366F1",borderRadius:6,padding:"2px 7px",fontWeight:600,textDecoration:"none"}}>🔗 Open</a>}
+                      </div>
                       <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>{b.why}</div>
                     </div>
                     <PriBadge value={b.pri} onChange={v=>doSaveB(pipeline,tasks,blocked.map(x=>x.id===b.id?{...x,pri:v}:x))}/>
                     <div style={{display:"flex",gap:2}}>
-                      <IconBtn onClick={()=>{setBf({what:b.what,why:b.why,pri:b.pri});setEditB(b);setAddBOpen(true);}} icon="✏️"/>
+                      <IconBtn onClick={()=>{setBf({what:b.what,why:b.why,pri:b.pri,link:b.link||""});setEditB(b);setAddBOpen(true);}} icon="✏️"/>
                       <IconBtn onClick={()=>doSaveB(pipeline,tasks,blocked.filter(x=>x.id!==b.id))} icon="🗑️" color="#EF4444"/>
                     </div>
                   </div>
@@ -527,6 +533,7 @@ function App() {
         <Modal title={editP?"Edit Step":"Add Pipeline Step"} onClose={()=>{setAddPOpen(false);setEditP(null);}}>
           <Field label="Title *" value={pf.title} onChange={v=>setPf(f=>({...f,title:v}))} placeholder="e.g. Retargeting Ads"/>
           <Field label="Description" value={pf.desc} onChange={v=>setPf(f=>({...f,desc:v}))} placeholder="What does this step do?" multiline/>
+          <Field label="Link (optional)" value={pf.link||""} onChange={v=>setPf(f=>({...f,link:v}))} placeholder="https://..."/>
           <div style={{marginBottom:18}}>
             <label style={{display:"block",fontWeight:600,fontSize:12,color:"#64748B",marginBottom:8,textTransform:"uppercase",letterSpacing:".04em"}}>Status</label>
             <div style={{display:"flex",gap:10}}>
@@ -571,6 +578,7 @@ function App() {
         <Modal title={editB?"Edit Blocker":"Add Blocker"} onClose={()=>{setAddBOpen(false);setEditB(null);}}>
           <Field label="What is needed *" value={bf.what} onChange={v=>setBf(f=>({...f,what:v}))} placeholder="e.g. Kasper sends client list"/>
           <Field label="Why it's needed" value={bf.why} onChange={v=>setBf(f=>({...f,why:v}))} placeholder="Explain what it unblocks" multiline/>
+          <Field label="Link (optional)" value={bf.link||""} onChange={v=>setBf(f=>({...f,link:v}))} placeholder="https://..."/>
           <FieldSelect label="Priority" value={bf.pri} onChange={v=>setBf(f=>({...f,pri:v}))} options={PRI_OPTIONS}/>
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <Btn variant="ghost" onClick={()=>{setAddBOpen(false);setEditB(null);}}>Cancel</Btn>
