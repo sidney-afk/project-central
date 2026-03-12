@@ -453,18 +453,13 @@ function App() {
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:11,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".06em",flexShrink:0}}>Quick Links</span>
           {quicklinks.map(ql=>(
-            <div key={ql.id} style={{display:"flex",alignItems:"center",gap:2}}>
-              {ql.url
-                ? <a href={ql.url.startsWith("http")?ql.url:"https://"+ql.url} target="_blank" rel="noreferrer"
-                    style={{fontSize:12,fontWeight:600,color:"#6366F1",background:"#EEF2FF",borderRadius:20,padding:"4px 12px",textDecoration:"none",whiteSpace:"nowrap"}}>{ql.label}</a>
-                : <span style={{fontSize:12,fontWeight:600,color:"#CBD5E1",background:"#F8FAFC",borderRadius:20,padding:"4px 12px",whiteSpace:"nowrap",border:"1px dashed #E2E8F0"}}>{ql.label}</span>
-              }
-              <button onClick={()=>{setQlForm({id:ql.id,label:ql.label,url:ql.url});setQlOpen(true);}}
-                style={{background:"none",border:"none",color:"#CBD5E1",cursor:"pointer",fontSize:11,padding:"2px 3px",lineHeight:1}}>✏️</button>
-            </div>
+            ql.url
+              ? <a key={ql.id} href={ql.url.startsWith("http")?ql.url:"https://"+ql.url} target="_blank" rel="noreferrer"
+                  style={{fontSize:12,fontWeight:600,color:"#6366F1",background:"#EEF2FF",borderRadius:20,padding:"4px 12px",textDecoration:"none",whiteSpace:"nowrap"}}>{ql.label}</a>
+              : <span key={ql.id} style={{fontSize:12,fontWeight:600,color:"#CBD5E1",background:"#F8FAFC",borderRadius:20,padding:"4px 12px",whiteSpace:"nowrap",border:"1px dashed #E2E8F0"}}>{ql.label}</span>
           ))}
-          <button onClick={()=>{setQlForm({label:"",url:""});setQlOpen(true);}}
-            style={{fontSize:12,fontWeight:600,color:"#94A3B8",background:"none",border:"1.5px dashed #E2E8F0",borderRadius:20,padding:"4px 12px",cursor:"pointer",whiteSpace:"nowrap"}}>+ Add</button>
+          <button onClick={()=>setQlOpen(true)}
+            style={{marginLeft:"auto",background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:16,padding:"2px 6px",lineHeight:1,flexShrink:0}} title="Edit links">✏️</button>
         </div>
       </div>
 
@@ -600,21 +595,32 @@ function App() {
         </Modal>
       )}
       {qlOpen&&(
-        <Modal title={qlForm.id?"Edit Link":"Add Link"} onClose={()=>setQlOpen(false)}>
-          <Field label="Label *" value={qlForm.label} onChange={v=>setQlForm(f=>({...f,label:v}))} placeholder="e.g. Landing Page"/>
-          <Field label="URL" value={qlForm.url||""} onChange={v=>setQlForm(f=>({...f,url:v}))} placeholder="https://..."/>
-          <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
-            {qlForm.id&&<button onClick={()=>{doSaveQL(quicklinks.filter(x=>x.id!==qlForm.id));setQlOpen(false);}} style={{background:"none",border:"none",color:"#EF4444",fontWeight:600,fontSize:13,cursor:"pointer",padding:0}}>Delete</button>}
-            <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
-              <Btn variant="ghost" onClick={()=>setQlOpen(false)}>Cancel</Btn>
-              <Btn onClick={()=>{
-                if(!qlForm.label.trim())return;
-                const updated=qlForm.id
-                  ?quicklinks.map(x=>x.id===qlForm.id?{...x,label:qlForm.label,url:qlForm.url}:x)
-                  :[...quicklinks,{id:Math.max(0,...quicklinks.map(x=>x.id))+1,label:qlForm.label,url:qlForm.url}];
-                doSaveQL(updated);setQlOpen(false);
-              }}>Save</Btn>
-            </div>
+        <Modal title="Manage Quick Links" onClose={()=>{setQlOpen(false);setQlForm({label:"",url:""});}}>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16,maxHeight:340,overflowY:"auto"}}>
+            {quicklinks.map(ql=>(
+              <div key={ql.id} style={{display:"flex",gap:8,alignItems:"center"}}>
+                <input value={ql.label} onChange={e=>doSaveQL(quicklinks.map(x=>x.id===ql.id?{...x,label:e.target.value}:x))}
+                  style={{flex:"0 0 140px",padding:"7px 10px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:13,outline:"none"}} placeholder="Label"/>
+                <input value={ql.url||""} onChange={e=>doSaveQL(quicklinks.map(x=>x.id===ql.id?{...x,url:e.target.value}:x))}
+                  style={{flex:1,padding:"7px 10px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:13,outline:"none"}} placeholder="https://..."/>
+                <button onClick={()=>{if(window.confirm(`Delete "${ql.label}"?`))doSaveQL(quicklinks.filter(x=>x.id!==ql.id));}}
+                  style={{background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontSize:16,padding:"4px",flexShrink:0}}>🗑️</button>
+              </div>
+            ))}
+          </div>
+          <div style={{borderTop:"1px solid #F1F5F9",paddingTop:12,display:"flex",gap:8,alignItems:"center"}}>
+            <input value={qlForm.label} onChange={e=>setQlForm(f=>({...f,label:e.target.value}))}
+              style={{flex:"0 0 140px",padding:"7px 10px",border:"1.5px solid #6366F1",borderRadius:8,fontSize:13,outline:"none"}} placeholder="New label"/>
+            <input value={qlForm.url||""} onChange={e=>setQlForm(f=>({...f,url:e.target.value}))}
+              style={{flex:1,padding:"7px 10px",border:"1.5px solid #6366F1",borderRadius:8,fontSize:13,outline:"none"}} placeholder="https://..."/>
+            <Btn onClick={()=>{
+              if(!qlForm.label.trim())return;
+              doSaveQL([...quicklinks,{id:Math.max(0,...quicklinks.map(x=>x.id))+1,label:qlForm.label,url:qlForm.url||""}]);
+              setQlForm({label:"",url:""});
+            }}>+ Add</Btn>
+          </div>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+            <Btn onClick={()=>{setQlOpen(false);setQlForm({label:"",url:""});}}>Done</Btn>
           </div>
         </Modal>
       )}
