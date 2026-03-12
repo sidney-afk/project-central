@@ -22,16 +22,11 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const GIST_ID = "14820ce1c32ae455ce8890eccf7b27ee";
-const GIST_FILE = "project-central.json";
-function getToken() {
-  let t = localStorage.getItem("pc_token");
-  if (!t) {
-    t = prompt("Enter your GitHub token to sync data:");
-    if (t) localStorage.setItem("pc_token", t.trim());
-  }
-  return t ? t.trim() : "";
-}
+// ─── JSONBin config ───────────────────────────────────────────────
+// Fill these in after creating your JSONBin account:
+const JSONBIN_ID  = "69b2020bc3097a1dd519ceb3";   // e.g. "6650f2e9acd3cb34a83f1234"
+const JSONBIN_KEY = "$2a$10$reQRrRbpHt86LUsJk9y9BO5fbidNjk2tLXE6OJzlP68DjSMsuhvxq";   // e.g. "$2a$10$abc..."
+// ──────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = ["DONE","IN PROGRESS","PENDING","WAITING","URGENT","TO PLAN"];
 const STATUS_META = {
@@ -148,39 +143,24 @@ const INIT_BLOCKED = [
   {id:11,what:"Clarify kickoff call: N8N workflow or manual?",why:"Kasper mentioned handling it — confirm whether to build a trigger.",pri:"LOW"},
 ];
 
-async function loadFromGist() {
-  // Reads work on public gists without a token
-  const token = localStorage.getItem("pc_token");
-  const headers = { Accept: "application/vnd.github.v3+json" };
-  if (token) headers.Authorization = `token ${token}`;
-  const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, { headers });
-  if (!r.ok) throw new Error(`GitHub API error: ${r.status}`);
+async function loadData() {
+  if (!JSONBIN_ID || !JSONBIN_KEY) return null;
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`, {
+    headers: { "X-Master-Key": JSONBIN_KEY }
+  });
+  if (!r.ok) throw new Error(`Load failed: ${r.status}`);
   const d = await r.json();
-  const content = d.files[GIST_FILE]?.content;
-  if (!content) return null;
-  const parsed = JSON.parse(content);
-  if (!parsed.pipeline) return null;
-  return parsed;
+  if (!d.record || !d.record.pipeline) return null;
+  return d.record;
 }
 
-async function saveToGist(data) {
-  let token = localStorage.getItem("pc_token");
-  if (!token) {
-    token = prompt("Enter your GitHub token to save changes:");
-    if (!token) return;
-    localStorage.setItem("pc_token", token.trim());
-  }
-  token = token.trim();
-  const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    method: "PATCH",
-    headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
-    body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data) } } })
+async function saveData(data) {
+  if (!JSONBIN_ID || !JSONBIN_KEY) return;
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
+    method: "PUT",
+    headers: { "X-Master-Key": JSONBIN_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(data)
   });
-  if (r.status === 401) {
-    // Only clear token on a genuine auth rejection — never on load
-    localStorage.removeItem("pc_token");
-    throw new Error("Token rejected by GitHub. It's been cleared — re-enter on next save.");
-  }
   if (!r.ok) throw new Error(`Save failed: ${r.status}`);
 }
 
@@ -345,7 +325,7 @@ function App() {
   useEffect(()=>{
     (async()=>{
       try {
-        const data = await loadFromGist();
+        const data = await loadData();
         if(data){
           setPipeline(data.pipeline);
           setTasks(data.tasks);
@@ -354,7 +334,7 @@ function App() {
           setPipeline(INIT_PIPELINE);
           setTasks(INIT_TASKS);
           setBlocked(INIT_BLOCKED);
-          await saveToGist({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,blocked:INIT_BLOCKED});
+          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,blocked:INIT_BLOCKED});
         }
       } catch(e) {
         setPipeline(INIT_PIPELINE);
@@ -371,7 +351,7 @@ function App() {
     setSaving(true);
     saveTimer.current = setTimeout(async()=>{
       try {
-        await saveToGist(data);
+        await saveData(data);
         flash("✓ Saved");
       } catch(e){ flash("✗ Save failed",false); }
       setSaving(false);
