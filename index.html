@@ -434,12 +434,11 @@ function App() {
         </div>
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 20px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+      <div style={{maxWidth:980,margin:"0 auto 12px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {[
           {label:"Pipeline Progress",val:`${pDone}/${pipeline.length}`,sub:"steps complete",color:"#6366F1"},
-          {label:"Tasks Complete",   val:`${tDone}/${tasks.length}`,   sub:"tasks done",    color:"#10B981"},
+          {label:"Tasks Complete",   val:`${tDone}/${tasks.length}`,   sub:`${tasks.length?Math.round(tDone/tasks.length*100):0}% done`, color:"#10B981"},
           {label:"Waiting",          val:tWait,                        sub:"tasks on hold", color:"#F59E0B"},
-          {label:"Waiting",          val:tWait,                        sub:"need attention",color:"#EF4444"},
         ].map(s=>(
           <div key={s.label} className="card" style={{padding:"16px 18px",borderTop:`3px solid ${s.color}`}}>
             <div style={{fontSize:26,fontWeight:800,color:s.color}}>{s.val}</div>
@@ -447,6 +446,31 @@ function App() {
             <div style={{fontSize:11,color:"#94A3B8"}}>{s.sub}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{maxWidth:980,margin:"0 auto 16px"}} className="card">
+        <div style={{padding:"14px 18px 10px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".05em",marginBottom:10}}>Progress by Area</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"8px 16px"}}>
+            {areas.map(area=>{
+              const at=tasks.filter(t=>t.area===area);
+              const done=at.filter(t=>t.status==="DONE").length;
+              const pct=at.length?Math.round(done/at.length*100):0;
+              const color=AREA_COLORS[area]||"#6366F1";
+              return (
+                <div key={area}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <span style={{fontSize:11,fontWeight:600,color:"#475569",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"75%"}}>{area}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:color}}>{pct}%</span>
+                  </div>
+                  <div style={{height:5,background:"#F1F5F9",borderRadius:99}}>
+                    <div style={{height:5,borderRadius:99,background:color,width:`${pct}%`,transition:"width .4s"}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div style={{maxWidth:980,margin:"0 auto 16px",background:"#fff",borderRadius:12,border:"1px solid #E2E8F0",padding:"12px 16px"}}>
@@ -617,7 +641,7 @@ function App() {
               if(!qlForm.label.trim())return;
               doSaveQL([...quicklinks,{id:Math.max(0,...quicklinks.map(x=>x.id))+1,label:qlForm.label,url:qlForm.url||""}]);
               setQlForm({label:"",url:""});
-            }}>+ Add</Btn>
+            }}>Add</Btn>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
             <Btn onClick={()=>{setQlOpen(false);setQlForm({label:"",url:""});}}>Done</Btn>
