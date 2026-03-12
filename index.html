@@ -312,18 +312,14 @@ function App() {
   const [tab,setTab]=useState("pipeline");
   const [pipeline,setPipeline]=useState([]);
   const [tasks,setTasks]=useState([]);
-  const [blocked,setBlocked]=useState([]);
   const saveTimer = useRef(null);
 
   const [addPOpen,setAddPOpen]=useState(false);
   const [addTOpen,setAddTOpen]=useState(false);
-  const [addBOpen,setAddBOpen]=useState(false);
   const [editP,setEditP]=useState(null);
   const [editT,setEditT]=useState(null);
-  const [editB,setEditB]=useState(null);
-  const [pf,setPf]=useState({title:"",desc:"",done:false});
-  const [tf,setTf]=useState({area:"N8N",task:"",status:"PENDING",who:"",position:"bottom"});
-  const [bf,setBf]=useState({what:"",why:"",pri:"HIGH"});
+  const [pf,setPf]=useState({title:"",desc:"",done:false,link:""});
+  const [tf,setTf]=useState({area:"N8N",task:"",status:"PENDING",who:"",link:"",position:"bottom"});
 
   const flash=(msg,ok=true)=>{setToast({show:true,msg,ok});setTimeout(()=>setToast(t=>({...t,show:false})),2200);};
 
@@ -334,18 +330,15 @@ function App() {
         if(data){
           setPipeline(data.pipeline);
           setTasks(data.tasks);
-          setBlocked(data.blocked);
         } else {
           setPipeline(INIT_PIPELINE);
           setTasks(INIT_TASKS);
-          setBlocked(INIT_BLOCKED);
-          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,blocked:INIT_BLOCKED});
+          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS});
         }
       } catch(e) {
         setPipeline(INIT_PIPELINE);
         setTasks(INIT_TASKS);
-        setBlocked(INIT_BLOCKED);
-        flash("⚠️ Couldn't connect to Gist — working offline",false);
+        flash("⚠️ Couldn't connect — working offline",false);
       }
       setReady(true);
     })();
@@ -363,9 +356,8 @@ function App() {
     }, 800);
   },[]);
 
-  const doSaveP=useCallback((data,t,b)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,blocked:b}); },[debouncedSave]);
-  const doSaveT=useCallback((p,data,b)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,blocked:b}); },[debouncedSave]);
-  const doSaveB=useCallback((p,t,data)=>{ setBlocked(data); debouncedSave({pipeline:p,tasks:t,blocked:data}); },[debouncedSave]);
+  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t}); },[debouncedSave]);
+  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data}); },[debouncedSave]);
 
   const nextId=arr=>Math.max(0,...arr.map(x=>x.id))+1;
   const areas=[...new Set([...AREA_ORDER,...tasks.map(t=>t.area)])];
@@ -373,7 +365,7 @@ function App() {
   function submitP(){
     if(!pf.title.trim())return;
     const u=editP?pipeline.map(x=>x.id===editP.id?{...x,...pf,link:pf.link||""}:x):[...pipeline,{id:nextId(pipeline),...pf,link:pf.link||""}];
-    doSaveP(u,tasks,blocked);setPf({title:"",desc:"",done:false,link:""});setAddPOpen(false);setEditP(null);
+    doSaveP(u,tasks);setPf({title:"",desc:"",done:false,link:""});setAddPOpen(false);setEditP(null);
   }
   function submitT(){
     if(!tf.task.trim())return;
@@ -388,14 +380,8 @@ function App() {
       const ren=ins.map((t,i)=>({...t,order:i+1}));
       u=[...tasks.filter(t=>t.area!==tf.area),...ren];
     }
-    doSaveT(pipeline,u,blocked);setTf({area:"N8N",task:"",status:"PENDING",who:"",link:"",position:"bottom"});setAddTOpen(false);setEditT(null);
+    doSaveT(pipeline,u);setTf({area:"N8N",task:"",status:"PENDING",who:"",link:"",position:"bottom"});setAddTOpen(false);setEditT(null);
   }
-  function submitB(){
-    if(!bf.what.trim())return;
-    const u=editB?blocked.map(x=>x.id===editB.id?{...x,...bf,link:bf.link||""}:x):[...blocked,{id:nextId(blocked),...bf,link:bf.link||""}];
-    doSaveB(pipeline,tasks,u);setBf({what:"",why:"",pri:"HIGH",link:""});setAddBOpen(false);setEditB(null);
-  }
-
   const selAreaTasks=tasks.filter(t=>t.area===tf.area).sort((a,b)=>a.order-b.order);
   const posOpts=[
     {value:"top",label:"Top (position 1)"},
@@ -433,7 +419,7 @@ function App() {
           {label:"Pipeline Progress",val:`${pDone}/${pipeline.length}`,sub:"steps complete",color:"#6366F1"},
           {label:"Tasks Complete",   val:`${tDone}/${tasks.length}`,   sub:"tasks done",    color:"#10B981"},
           {label:"Waiting",          val:tWait,                        sub:"tasks on hold", color:"#F59E0B"},
-          {label:"Blockers",         val:blocked.length,               sub:"need attention",color:"#EF4444"},
+          {label:"Waiting",          val:tWait,                        sub:"need attention",color:"#EF4444"},
         ].map(s=>(
           <div key={s.label} className="card" style={{padding:"16px 18px",borderTop:`3px solid ${s.color}`}}>
             <div style={{fontSize:26,fontWeight:800,color:s.color}}>{s.val}</div>
@@ -447,7 +433,7 @@ function App() {
         <div style={{display:"flex",gap:6,padding:"14px 16px",borderBottom:"1px solid #F1F5F9",background:"#FAFAFA"}}>
           <TabBtn label="📋 Pipeline"  active={tab==="pipeline"} onClick={()=>setTab("pipeline")} count={pipeline.length}/>
           <TabBtn label="✅ Tasks"     active={tab==="tasks"}    onClick={()=>setTab("tasks")}    count={tasks.length}/>
-          <TabBtn label="🚫 Blockers" active={tab==="blocked"}  onClick={()=>setTab("blocked")}  count={blocked.length}/>
+          <TabBtn label="⏳ Waiting"  active={tab==="blocked"}  onClick={()=>setTab("blocked")}  count={tasks.filter(t=>t.status==="WAITING").length}/>
         </div>
         <div style={{padding:20}}>
 
@@ -468,10 +454,10 @@ function App() {
                       </div>
                       <div style={{fontSize:12,color:"#94A3B8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.desc}</div>
                     </div>
-                    <StatusPill value={p.done?"DONE":"PENDING"} onChange={v=>{const u=pipeline.map(x=>x.id===p.id?{...x,done:v==="DONE"}:x);doSaveP(u,tasks,blocked);}} options={["DONE","PENDING"]}/>
+                    <StatusPill value={p.done?"DONE":"PENDING"} onChange={v=>{const u=pipeline.map(x=>x.id===p.id?{...x,done:v==="DONE"}:x);doSaveP(u,tasks);}} options={["DONE","PENDING"]}/>
                     <div style={{display:"flex",gap:4}}>
                       <IconBtn onClick={()=>{setPf({title:p.title,desc:p.desc,done:p.done,link:p.link||""});setEditP(p);setAddPOpen(true);}} icon="✏️"/>
-                      <IconBtn onClick={()=>doSaveP(pipeline.filter(x=>x.id!==p.id),tasks,blocked)} icon="🗑️" color="#EF4444"/>
+                      <IconBtn onClick={()=>doSaveP(pipeline.filter(x=>x.id!==p.id),tasks)} icon="🗑️" color="#EF4444"/>
                     </div>
                   </div>
                 ))}
@@ -488,12 +474,12 @@ function App() {
               {areas.map(area=>(
                 <AreaSection key={area} area={area}
                   areaTasks={tasks.filter(t=>t.area===area).sort((a,b)=>a.order-b.order)}
-                  onStatusChange={(id,v)=>{const u=tasks.map(x=>x.id===id?{...x,status:v}:x);doSaveT(pipeline,u,blocked);}}
+                  onStatusChange={(id,v)=>{const u=tasks.map(x=>x.id===id?{...x,status:v}:x);doSaveT(pipeline,u);}}
                   onEdit={t=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,link:t.link||"",position:"bottom"});setEditT(t);setAddTOpen(true);}}
-                  onDelete={id=>doSaveT(pipeline,tasks.filter(x=>x.id!==id),blocked)}
+                  onDelete={id=>doSaveT(pipeline,tasks.filter(x=>x.id!==id))}
                   onReorder={(area,reordered)=>{
                     const u=[...tasks.filter(t=>t.area!==area),...reordered];
-                    doSaveT(pipeline,u,blocked);
+                    doSaveT(pipeline,u);
                   }}
                 />
               ))}
@@ -502,26 +488,26 @@ function App() {
 
           {tab==="blocked"&&(
             <>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                <div><div style={{fontWeight:700,fontSize:15}}>Blockers</div><div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>What needs to happen before we can move forward</div></div>
-                <Btn onClick={()=>{setBf({what:"",why:"",pri:"HIGH",link:""});setEditB(null);setAddBOpen(true);}}>+ Add Blocker</Btn>
+              <div style={{marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:15}}>Waiting</div>
+                <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>All tasks currently blocked or waiting on someone</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {blocked.map((b,i)=>(
-                  <div key={b.id} className="row-hover" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"1.5px solid #FEE2E2",background:"#FFF9F9"}}>
+                {tasks.filter(t=>t.status==="WAITING").length===0&&(
+                  <div style={{textAlign:"center",padding:"40px 0",color:"#94A3B8",fontSize:13}}>🎉 No tasks waiting right now</div>
+                )}
+                {tasks.filter(t=>t.status==="WAITING").map((t,i)=>(
+                  <div key={t.id} className="row-hover" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:"1.5px solid #FEE2E2",background:"#FFF9F9"}}>
                     <div style={{width:22,height:22,borderRadius:"50%",background:"#FEE2E2",color:"#EF4444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:600,fontSize:13,display:"flex",alignItems:"center",gap:6}}>
-                        {b.what}
-                        {b.link&&<a href={b.link.startsWith("http")?b.link:"https://"+b.link} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} title={b.link} style={{flexShrink:0,fontSize:11,background:"#EEF2FF",color:"#6366F1",borderRadius:6,padding:"2px 7px",fontWeight:600,textDecoration:"none"}}>🔗 Open</a>}
+                        {t.task}
+                        {t.link&&<a href={t.link.startsWith("http")?t.link:"https://"+t.link} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{flexShrink:0,fontSize:11,background:"#EEF2FF",color:"#6366F1",borderRadius:6,padding:"2px 7px",fontWeight:600,textDecoration:"none"}}>🔗 Open</a>}
                       </div>
-                      <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>{b.why}</div>
+                      <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>{t.area} · {t.who}</div>
                     </div>
-                    <PriBadge value={b.pri} onChange={v=>doSaveB(pipeline,tasks,blocked.map(x=>x.id===b.id?{...x,pri:v}:x))}/>
-                    <div style={{display:"flex",gap:2}}>
-                      <IconBtn onClick={()=>{setBf({what:b.what,why:b.why,pri:b.pri,link:b.link||""});setEditB(b);setAddBOpen(true);}} icon="✏️"/>
-                      <IconBtn onClick={()=>doSaveB(pipeline,tasks,blocked.filter(x=>x.id!==b.id))} icon="🗑️" color="#EF4444"/>
-                    </div>
+                    <StatusPill value={t.status} onChange={v=>{const u=tasks.map(x=>x.id===t.id?{...x,status:v}:x);doSaveT(pipeline,u);}}/>
+                    <IconBtn onClick={()=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,link:t.link||"",position:"bottom"});setEditT(t);setAddTOpen(true);}} icon="✏️"/>
                   </div>
                 ))}
               </div>
@@ -571,19 +557,6 @@ function App() {
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <Btn variant="ghost" onClick={()=>{setAddTOpen(false);setEditT(null);}}>Cancel</Btn>
             <Btn onClick={submitT}>{editT?"Save Changes":"Add Task"}</Btn>
-          </div>
-        </Modal>
-      )}
-
-      {addBOpen&&(
-        <Modal title={editB?"Edit Blocker":"Add Blocker"} onClose={()=>{setAddBOpen(false);setEditB(null);}}>
-          <Field label="What is needed *" value={bf.what} onChange={v=>setBf(f=>({...f,what:v}))} placeholder="e.g. Kasper sends client list"/>
-          <Field label="Why it's needed" value={bf.why} onChange={v=>setBf(f=>({...f,why:v}))} placeholder="Explain what it unblocks" multiline/>
-          <Field label="Link (optional)" value={bf.link||""} onChange={v=>setBf(f=>({...f,link:v}))} placeholder="https://..."/>
-          <FieldSelect label="Priority" value={bf.pri} onChange={v=>setBf(f=>({...f,pri:v}))} options={PRI_OPTIONS}/>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <Btn variant="ghost" onClick={()=>{setAddBOpen(false);setEditB(null);}}>Cancel</Btn>
-            <Btn onClick={submitB}>{editB?"Save Changes":"Add Blocker"}</Btn>
           </div>
         </Modal>
       )}
