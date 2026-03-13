@@ -326,6 +326,9 @@ function App() {
   const [pipeline,setPipeline]=useState([]);
   const [tasks,setTasks]=useState([]);
   const [quicklinks,setQuicklinks]=useState([]);
+  const [focusText,setFocusText]=useState("");
+  const [focusEditing,setFocusEditing]=useState(false);
+  const [focusDraft,setFocusDraft]=useState("");
   const [qlOpen,setQlOpen]=useState(false);
   const [qlForm,setQlForm]=useState({label:"",url:""});
   const saveTimer = useRef(null);
@@ -347,11 +350,12 @@ function App() {
           setPipeline(data.pipeline);
           setTasks(data.tasks);
           setQuicklinks(data.quicklinks||INIT_QUICKLINKS);
+          setFocusText(data.focusText||"");
         } else {
           setPipeline(INIT_PIPELINE);
           setTasks(INIT_TASKS);
           setQuicklinks(INIT_QUICKLINKS);
-          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,quicklinks:INIT_QUICKLINKS});
+          await saveData({pipeline:INIT_PIPELINE,tasks:INIT_TASKS,quicklinks:INIT_QUICKLINKS,focusText:""});
         }
       } catch(e) {
         setPipeline(INIT_PIPELINE);
@@ -375,9 +379,9 @@ function App() {
     }, 800);
   },[]);
 
-  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,quicklinks}); },[debouncedSave,quicklinks]);
-  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,quicklinks}); },[debouncedSave,quicklinks]);
-  const doSaveQL=useCallback((data)=>{ setQuicklinks(data); debouncedSave({pipeline,tasks,quicklinks:data}); },[debouncedSave,pipeline,tasks]);
+  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,quicklinks,focusText}); },[debouncedSave,quicklinks,focusText]);
+  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,quicklinks,focusText}); },[debouncedSave,quicklinks,focusText]);
+  const doSaveQL=useCallback((data)=>{ setQuicklinks(data); debouncedSave({pipeline,tasks,quicklinks:data,focusText}); },[debouncedSave,pipeline,tasks,focusText]);
 
   const nextId=arr=>Math.max(0,...arr.map(x=>x.id))+1;
   const areas=[...new Set([...AREA_ORDER,...tasks.map(t=>t.area)])];
@@ -448,38 +452,31 @@ function App() {
         ))}
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 12px"}} className="card">
-        <div style={{padding:"18px 20px",background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)",borderRadius:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>🎯 Focus — What to do right now</div>
-          {(()=>{
-            const priority = [
-              ...tasks.filter(t=>t.status==="URGENT"),
-              ...tasks.filter(t=>t.status==="IN PROGRESS"),
-              ...tasks.filter(t=>t.status==="PENDING"),
-            ].slice(0,3);
-            if(!priority.length) return <div style={{color:"rgba(255,255,255,.5)",fontSize:13}}>No active tasks — you're all clear 🎉</div>;
-            return (
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {priority.map((t,i)=>{
-                  const isFirst=i===0;
-                  const statusColor=t.status==="URGENT"?"#FCA5A5":t.status==="IN PROGRESS"?"#C4B5FD":"#FDE68A";
-                  const statusBg=t.status==="URGENT"?"rgba(239,68,68,.2)":t.status==="IN PROGRESS"?"rgba(139,92,246,.2)":"rgba(251,191,36,.15)";
-                  return (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,background:isFirst?"rgba(255,255,255,.1)":"rgba(255,255,255,.05)",borderRadius:10,padding:isFirst?"12px 14px":"9px 14px",border:isFirst?"1px solid rgba(255,255,255,.15)":"1px solid rgba(255,255,255,.06)"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:isFirst?"rgba(255,255,255,.2)":"rgba(255,255,255,.08)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,flexShrink:0}}>{i+1}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:isFirst?14:13,fontWeight:isFirst?700:600,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.task}</div>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,.45)",marginTop:2}}>{t.area}</div>
-                      </div>
-                      {t.link&&<a href={t.link.startsWith("http")?t.link:"https://"+t.link} target="_blank" rel="noreferrer" style={{fontSize:11,background:"rgba(255,255,255,.15)",color:"#fff",borderRadius:6,padding:"3px 9px",fontWeight:600,textDecoration:"none",flexShrink:0,whiteSpace:"nowrap"}}>🔗 Open</a>}
-                      <span style={{fontSize:10,fontWeight:700,background:statusBg,color:statusColor,borderRadius:20,padding:"3px 9px",flexShrink:0,whiteSpace:"nowrap"}}>{t.status}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+      <div style={{maxWidth:980,margin:"0 auto 12px",borderRadius:14,overflow:"hidden",background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)",position:"relative",minHeight:130}}>
+        <button onClick={()=>{setFocusDraft(focusText);setFocusEditing(true);}}
+          style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,.08)",border:"none",borderRadius:8,color:"rgba(255,255,255,.4)",cursor:"pointer",fontSize:13,padding:"5px 8px",lineHeight:1,zIndex:2}}>✏️</button>
+        <div style={{padding:"28px 24px",textAlign:"center"}}>
+          <div style={{fontSize:10,fontWeight:800,letterSpacing:".12em",textTransform:"uppercase",marginBottom:12,background:"linear-gradient(90deg,#ef4444,#f97316,#eab308)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Priority</div>
+          {focusText
+            ? <div style={{fontSize:26,fontWeight:800,color:"#fff",lineHeight:1.25,maxWidth:700,margin:"0 auto"}}>{focusText}</div>
+            : <div onClick={()=>{setFocusDraft("");setFocusEditing(true);}} style={{fontSize:18,color:"rgba(255,255,255,.25)",cursor:"pointer",fontStyle:"italic"}}>Click ✏️ to set your current priority…</div>
+          }
         </div>
+        {focusEditing&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+            <div style={{background:"#1e1b4b",borderRadius:16,padding:28,width:"90%",maxWidth:520,border:"1px solid rgba(255,255,255,.15)"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:16}}>Set Priority</div>
+              <textarea value={focusDraft} onChange={e=>setFocusDraft(e.target.value)} autoFocus
+                style={{width:"100%",background:"rgba(255,255,255,.08)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:10,color:"#fff",fontSize:18,fontWeight:700,padding:"14px 16px",outline:"none",resize:"none",lineHeight:1.4,fontFamily:"inherit"}}
+                rows={3} placeholder="What's the most important thing right now?"/>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+                <button onClick={()=>setFocusEditing(false)} style={{background:"rgba(255,255,255,.08)",border:"none",color:"rgba(255,255,255,.6)",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+                <button onClick={()=>{setFocusText(focusDraft);debouncedSave({pipeline,tasks,quicklinks,focusText:focusDraft});setFocusEditing(false);}}
+                  style={{background:"#6366F1",border:"none",color:"#fff",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{maxWidth:980,margin:"0 auto 16px"}} className="card">
