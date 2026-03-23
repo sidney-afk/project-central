@@ -332,6 +332,10 @@ function App() {
   const [qlOpen,setQlOpen]=useState(false);
   const [qlForm,setQlForm]=useState({label:"",url:""});
   const saveTimer = useRef(null);
+  const [scrollToArea, setScrollToArea] = useState(null);
+  const [customAreas, setCustomAreas] = useState([]);
+  const [addAreaOpen, setAddAreaOpen] = useState(false);
+  const [newAreaName, setNewAreaName] = useState("");
 
   const [addPOpen,setAddPOpen]=useState(false);
   const [addTOpen,setAddTOpen]=useState(false);
@@ -350,6 +354,7 @@ function App() {
           setPipeline(data.pipeline);
           setTasks(data.tasks);
           setQuicklinks(data.quicklinks||INIT_QUICKLINKS);
+          setCustomAreas(data.customAreas||[]);
           setFocusText(data.focusText||"");
         } else {
           setPipeline(INIT_PIPELINE);
@@ -379,12 +384,22 @@ function App() {
     }, 800);
   },[]);
 
-  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,quicklinks,focusText}); },[debouncedSave,quicklinks,focusText]);
-  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,quicklinks,focusText}); },[debouncedSave,quicklinks,focusText]);
-  const doSaveQL=useCallback((data)=>{ setQuicklinks(data); debouncedSave({pipeline,tasks,quicklinks:data,focusText}); },[debouncedSave,pipeline,tasks,focusText]);
+  const doSaveP=useCallback((data,t)=>{ setPipeline(data); debouncedSave({pipeline:data,tasks:t,quicklinks,focusText,customAreas}); },[debouncedSave,quicklinks,focusText,customAreas]);
+  const doSaveT=useCallback((p,data)=>{ setTasks(data); debouncedSave({pipeline:p,tasks:data,quicklinks,focusText,customAreas}); },[debouncedSave,quicklinks,focusText,customAreas]);
+  const doSaveQL=useCallback((data)=>{ setQuicklinks(data); debouncedSave({pipeline,tasks,quicklinks:data,focusText,customAreas}); },[debouncedSave,pipeline,tasks,focusText,customAreas]);
+  const doSaveCA=useCallback((data)=>{ setCustomAreas(data); debouncedSave({pipeline,tasks,quicklinks,focusText,customAreas:data}); },[debouncedSave,pipeline,tasks,quicklinks,focusText]);
 
   const nextId=arr=>Math.max(0,...arr.map(x=>x.id))+1;
-  const areas=[...new Set([...AREA_ORDER,...tasks.map(t=>t.area)])];
+  const areas=[...new Set([...AREA_ORDER,...customAreas,...tasks.map(t=>t.area)])];
+
+  // Scroll to area when navigating from progress section
+  useEffect(()=>{
+    if(tab==="tasks"&&scrollToArea){
+      const id=`area-${scrollToArea.replace(/[^a-zA-Z0-9]/g,"-")}`;
+      const attempt=()=>{ const el=document.getElementById(id); if(el){el.scrollIntoView({behavior:"smooth",block:"start"});setScrollToArea(null);} };
+      setTimeout(attempt,80);
+    }
+  },[tab,scrollToArea]);
 
   function submitP(){
     if(!pf.title.trim())return;
@@ -471,7 +486,7 @@ function App() {
                 rows={3} placeholder="What's the most important thing right now?"/>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
                 <button onClick={()=>setFocusEditing(false)} style={{background:"rgba(255,255,255,.08)",border:"none",color:"rgba(255,255,255,.6)",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Cancel</button>
-                <button onClick={()=>{setFocusText(focusDraft);debouncedSave({pipeline,tasks,quicklinks,focusText:focusDraft});setFocusEditing(false);}}
+                <button onClick={()=>{setFocusText(focusDraft);debouncedSave({pipeline,tasks,quicklinks,focusText:focusDraft,customAreas});setFocusEditing(false);}}
                   style={{background:"#6366F1",border:"none",color:"#fff",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
               </div>
             </div>
@@ -489,7 +504,10 @@ function App() {
               const pct=at.length?Math.round(done/at.length*100):0;
               const color=AREA_COLORS[area]||"#6366F1";
               return (
-                <div key={area}>
+                <div key={area} onClick={()=>{setTab("tasks");setScrollToArea(area);}}
+                  style={{cursor:"pointer",borderRadius:8,padding:"5px 6px",margin:"-5px -6px",transition:"background .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="#F1F5F9"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                     <span style={{fontSize:11,fontWeight:600,color:"#475569",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"75%"}}>{area}</span>
                     <span style={{fontSize:11,fontWeight:700,color:color}}>{pct}%</span>
@@ -518,8 +536,8 @@ function App() {
         </div>
       </div>
 
-      <div className="card" style={{maxWidth:980,margin:"0 auto",borderRadius:16,overflow:"hidden"}}>
-        <div style={{display:"flex",gap:6,padding:"14px 16px",borderBottom:"1px solid #F1F5F9",background:"#FAFAFA"}}>
+      <div className="card" style={{maxWidth:980,margin:"0 auto",borderRadius:16}}>
+        <div style={{display:"flex",gap:6,padding:"14px 16px",borderBottom:"1px solid #F1F5F9",background:"#FAFAFA",borderRadius:"16px 16px 0 0"}}>
           <TabBtn label="📋 Pipeline"  active={tab==="pipeline"} onClick={()=>setTab("pipeline")} count={pipeline.length}/>
           <TabBtn label="✅ Tasks"     active={tab==="tasks"}    onClick={()=>setTab("tasks")}    count={tasks.length}/>
           <TabBtn label="⏳ Waiting"  active={tab==="blocked"}  onClick={()=>setTab("blocked")}  count={tasks.filter(t=>t.status==="WAITING").length}/>
@@ -556,22 +574,53 @@ function App() {
 
           {tab==="tasks"&&(
             <>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div><div style={{fontWeight:700,fontSize:15}}>Task Status Tracker</div><div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>Drag ⠿ to reorder within each area</div></div>
-                <Btn onClick={()=>{setTf({area:areas[0]||"N8N",task:"",status:"PENDING",who:"",position:"bottom"});setEditT(null);setAddTOpen(true);}}>+ Add Task</Btn>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn variant="ghost" onClick={()=>{setNewAreaName("");setAddAreaOpen(true);}}>+ New Area</Btn>
+                  <Btn onClick={()=>{setTf({area:areas[0]||"N8N",task:"",status:"PENDING",who:"",position:"bottom"});setEditT(null);setAddTOpen(true);}}>+ Add Task</Btn>
+                </div>
               </div>
-              {areas.map(area=>(
-                <AreaSection key={area} area={area}
-                  areaTasks={tasks.filter(t=>t.area===area).sort((a,b)=>a.order-b.order)}
-                  onStatusChange={(id,v)=>{const u=tasks.map(x=>x.id===id?{...x,status:v}:x);doSaveT(pipeline,u);}}
-                  onEdit={t=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,link:t.link||"",position:"bottom"});setEditT(t);setAddTOpen(true);}}
-                  onDelete={id=>doSaveT(pipeline,tasks.filter(x=>x.id!==id))}
-                  onReorder={(area,reordered)=>{
-                    const u=[...tasks.filter(t=>t.area!==area),...reordered];
-                    doSaveT(pipeline,u);
-                  }}
-                />
-              ))}
+              <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+                {/* Area sidebar */}
+                <div style={{width:152,flexShrink:0,position:"sticky",top:20,display:"flex",flexDirection:"column",gap:2}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".07em",marginBottom:6,paddingLeft:4}}>Areas</div>
+                  {areas.map(area=>{
+                    const color=AREA_COLORS[area]||"#6366F1";
+                    const at=tasks.filter(t=>t.area===area);
+                    const done=at.filter(t=>t.status==="DONE").length;
+                    return (
+                      <div key={area} onClick={()=>{const id=`area-${area.replace(/[^a-zA-Z0-9]/g,"-")}`;const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}}
+                        style={{display:"flex",alignItems:"center",gap:7,padding:"6px 8px",borderRadius:8,cursor:"pointer",transition:"background .13s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#F1F5F9"}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        <div style={{width:3,height:16,borderRadius:2,background:color,flexShrink:0}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:11,fontWeight:600,color:"#334155",lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{area}</div>
+                          <div style={{fontSize:10,color:"#94A3B8"}}>{done}/{at.length}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Main task list */}
+                <div style={{flex:1,minWidth:0}}>
+                  {areas.map(area=>(
+                    <div key={area} id={`area-${area.replace(/[^a-zA-Z0-9]/g,"-")}`}>
+                      <AreaSection area={area}
+                        areaTasks={tasks.filter(t=>t.area===area).sort((a,b)=>a.order-b.order)}
+                        onStatusChange={(id,v)=>{const u=tasks.map(x=>x.id===id?{...x,status:v}:x);doSaveT(pipeline,u);}}
+                        onEdit={t=>{setTf({area:t.area,task:t.task,status:t.status,who:t.who,link:t.link||"",position:"bottom"});setEditT(t);setAddTOpen(true);}}
+                        onDelete={id=>doSaveT(pipeline,tasks.filter(x=>x.id!==id))}
+                        onReorder={(area,reordered)=>{
+                          const u=[...tasks.filter(t=>t.area!==area),...reordered];
+                          doSaveT(pipeline,u);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 
@@ -649,6 +698,22 @@ function App() {
           </div>
         </Modal>
       )}
+      {addAreaOpen&&(
+        <Modal title="New Area" onClose={()=>setAddAreaOpen(false)}>
+          <Field label="Area Name *" value={newAreaName} onChange={setNewAreaName} placeholder="e.g. Client Retention"/>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="ghost" onClick={()=>setAddAreaOpen(false)}>Cancel</Btn>
+            <Btn onClick={()=>{
+              const name=newAreaName.trim();
+              if(!name)return;
+              if(!areas.includes(name)){doSaveCA([...customAreas,name]);}
+              setAddAreaOpen(false);setNewAreaName("");
+              setTab("tasks");setScrollToArea(name);
+            }}>Create Area</Btn>
+          </div>
+        </Modal>
+      )}
+
       {qlOpen&&(
         <Modal title="Manage Quick Links" onClose={()=>{setQlOpen(false);setQlForm({label:"",url:""});}}>
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16,maxHeight:340,overflowY:"auto"}}>
