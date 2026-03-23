@@ -443,7 +443,7 @@ function App() {
     <div style={{minHeight:"100vh",background:"#F8FAFC",padding:"24px 20px"}}>
       <div className={`toast${toast.show?" show":""}`} style={{background:toast.ok?"#0F172A":"#EF4444",color:"#fff"}}>{toast.msg}</div>
 
-      <div style={{maxWidth:980,margin:"0 auto 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+      <div style={{maxWidth:1400,margin:"0 auto 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <div style={{fontSize:22,fontWeight:800,letterSpacing:"-.02em"}}>Central Board</div>
           <div style={{fontSize:13,color:"#94A3B8",marginTop:2}}>Client Acquisition & Onboarding · {saving?"saving…":"all changes saved"}</div>
@@ -453,7 +453,7 @@ function App() {
         </div>
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 12px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+      <div style={{maxWidth:1400,margin:"0 auto 12px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {[
           {label:"Pipeline Progress",val:`${pDone}/${pipeline.length}`,sub:"steps complete",color:"#6366F1"},
           {label:"Tasks Complete",   val:`${tDone}/${tasks.length}`,   sub:`${tasks.length?Math.round(tDone/tasks.length*100):0}% done`, color:"#10B981"},
@@ -467,7 +467,7 @@ function App() {
         ))}
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 12px",borderRadius:14,overflow:"hidden",background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)",position:"relative",minHeight:130}}>
+      <div style={{maxWidth:1400,margin:"0 auto 12px",borderRadius:14,overflow:"hidden",background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)",position:"relative",minHeight:130}}>
         <button onClick={()=>{setFocusDraft(focusText);setFocusEditing(true);}}
           style={{position:"absolute",top:12,right:12,background:"rgba(255,255,255,.08)",border:"none",borderRadius:8,color:"rgba(255,255,255,.4)",cursor:"pointer",fontSize:13,padding:"5px 8px",lineHeight:1,zIndex:2}}>✏️</button>
         <div style={{padding:"28px 24px",textAlign:"center"}}>
@@ -494,7 +494,7 @@ function App() {
         )}
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 16px"}} className="card">
+      <div style={{maxWidth:1400,margin:"0 auto 16px"}} className="card">
         <div style={{padding:"14px 18px 10px"}}>
           <div style={{fontSize:12,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".05em",marginBottom:10}}>Progress by Area</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"8px 16px"}}>
@@ -522,7 +522,7 @@ function App() {
         </div>
       </div>
 
-      <div style={{maxWidth:980,margin:"0 auto 16px",background:"#fff",borderRadius:12,border:"1px solid #E2E8F0",padding:"12px 16px"}}>
+      <div style={{maxWidth:1400,margin:"0 auto 16px",background:"#fff",borderRadius:12,border:"1px solid #E2E8F0",padding:"12px 16px"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:11,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:".06em",flexShrink:0}}>Quick Links</span>
           {quicklinks.map(ql=>(
@@ -536,7 +536,7 @@ function App() {
         </div>
       </div>
 
-      <div className="card" style={{maxWidth:980,margin:"0 auto",borderRadius:16}}>
+      <div className="card" style={{maxWidth:1400,margin:"0 auto",borderRadius:16}}>
         <div style={{display:"flex",gap:6,padding:"14px 16px",borderBottom:"1px solid #F1F5F9",background:"#FAFAFA",borderRadius:"16px 16px 0 0"}}>
           <TabBtn label="📋 Pipeline"  active={tab==="pipeline"} onClick={()=>setTab("pipeline")} count={pipeline.length}/>
           <TabBtn label="✅ Tasks"     active={tab==="tasks"}    onClick={()=>setTab("tasks")}    count={tasks.length}/>
