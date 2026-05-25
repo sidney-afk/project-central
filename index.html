@@ -5,47 +5,288 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Project Central</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:#F8FAFC;font-family:'Inter','Segoe UI',Arial,sans-serif;color:#0F172A;-webkit-font-smoothing:antialiased;}
-  button,input,select,textarea{font-family:inherit;color:inherit;}
-  select{appearance:none;cursor:pointer;background:#fff;}
-  button{cursor:pointer;background:none;border:none;padding:0;transition:background .15s, opacity .15s, color .15s;}
-  textarea{resize:none;}
-  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);}
-  .toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;color:#fff;}
-  .toast.show{opacity:1;}
-  .field-input{width:100%;padding:9px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#0F172A;outline:none;background:#FAFAFA;}
-  .field-input:focus{border-color:#6366F1;background:#fff;}
-  .field-label{display:block;font-weight:700;font-size:11px;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
-  .drop-before{box-shadow:inset 0 3px 0 0 #6366F1;}
-  .drop-after{box-shadow:inset 0 -3px 0 0 #6366F1;}
-  .drop-into{background:#EEF2FF !important;outline:2px dashed #6366F1;outline-offset:-2px;}
-  .ghost{opacity:.35;}
-  .grip{color:#CBD5E1;cursor:grab;user-select:none;padding:2px 4px;line-height:1;}
-  .grip:active{cursor:grabbing;}
-  .icon-btn{padding:6px;border-radius:6px;color:#94A3B8;}
-  .icon-btn:hover{background:#F1F5F9;color:#475569;}
-  .icon-btn.danger:hover{background:#FEE2E2;color:#B91C1C;}
-  .focus-ring:focus-visible{outline:2px solid #6366F1;outline-offset:2px;border-radius:6px;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-  .menu{animation:fadeIn .12s ease-out;}
-  /* Collapsible content */
-  .collapse-content{overflow:hidden;}
+  :root {
+    --bg:           #F7F7F8;
+    --surface:      #FFFFFF;
+    --surface-2:    #FAFAFA;
+    --hover:        #F4F4F5;
+    --border:       #ECECEE;
+    --border-strong:#D4D4D8;
+    --text:         #18181B;
+    --text-soft:    #52525B;
+    --text-muted:   #A1A1AA;
+    --text-faint:   #D4D4D8;
+    --accent:       #4F46E5;
+    --accent-hover: #4338CA;
+    --accent-soft:  #EEF2FF;
+    --accent-text:  #4338CA;
+    --danger:       #DC2626;
+    --danger-soft:  #FEF2F2;
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+    --shadow-md: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --shadow-pop: 0 8px 24px rgba(15,23,42,.12), 0 2px 4px rgba(15,23,42,.06);
+
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: "cv11","ss01","ss03";
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  button, input, select, textarea { font-family: inherit; color: inherit; }
+  button { cursor: pointer; background: none; border: none; padding: 0; }
+  textarea { resize: none; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Focus ring */
+  .focusable:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+
+  /* Drag */
+  .grip {
+    color: var(--text-faint);
+    cursor: grab;
+    user-select: none;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color .12s, background .12s;
+  }
+  .grip:hover { color: var(--text-soft); background: var(--hover); }
+  .grip:active { cursor: grabbing; }
+  .drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
+  .drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
+  .drop-into   { background: var(--accent-soft) !important; outline: 1.5px dashed var(--accent); outline-offset: -2px; border-radius: var(--r-md); }
+  .ghost { opacity: .35; }
+
+  /* Icon button */
+  .iconbtn {
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    border-radius: var(--r-sm);
+    transition: background .12s, color .12s;
+  }
+  .iconbtn:hover { background: var(--hover); color: var(--text); }
+  .iconbtn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+  .iconbtn svg { width: 14px; height: 14px; }
+
+  /* Header chip / button */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--r-pill);
+    font-size: 11.5px; font-weight: 600;
+    background: var(--hover);
+    color: var(--text-soft);
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chip:hover { background: var(--border); }
+  .chip.ghost-chip {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .row:hover .chip.ghost-chip { opacity: 1; }
+  .chip.ghost-chip:hover { color: var(--text-soft); border-color: var(--text-muted); }
+
+  /* Status pill — variants set inline */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px 3px 8px;
+    border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 600;
+    transition: filter .12s, transform .12s;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .status-pill:hover { filter: brightness(.97); }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    border-radius: var(--r-md);
+    font-size: 12.5px; font-weight: 600;
+    background: var(--surface);
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .btn:hover { background: var(--hover); color: var(--text); }
+  .btn-primary {
+    background: var(--text);
+    color: var(--surface);
+    border-color: var(--text);
+  }
+  .btn-primary:hover { background: #27272A; color: var(--surface); }
+  .btn-ghost {
+    background: transparent;
+    border: none;
+    color: var(--text-soft);
+    padding: 5px 10px;
+    font-weight: 600;
+    border-radius: var(--r-sm);
+  }
+  .btn-ghost:hover { background: var(--hover); color: var(--text); }
+
+  /* Inline input */
+  .inline-input {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 4px 6px;
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    transition: background .12s, border-color .12s;
+  }
+  .inline-input:hover { background: var(--surface-2); }
+  .inline-input:focus { background: var(--surface); border-color: var(--border-strong); }
+  textarea.inline-input { resize: none; overflow: hidden; line-height: 1.5; }
+
+  /* Section label */
+  .section-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .field-label { display: block; font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
+  .field-input {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-size: 13px; color: var(--text); outline: none;
+    background: var(--surface);
+    transition: border-color .12s;
+  }
+  .field-input:focus { border-color: var(--accent); }
+
+  /* Row */
+  .row {
+    display: grid;
+    grid-template-columns: 22px 110px 1fr auto 28px;
+    column-gap: 10px;
+    align-items: start;
+    padding: 6px 6px;
+    border-radius: var(--r-md);
+    position: relative;
+    transition: background .12s;
+  }
+  .row:hover { background: var(--surface-2); }
+  .row .grip, .row .row-actions { opacity: 0; transition: opacity .12s; }
+  .row:hover .grip, .row:hover .row-actions { opacity: 1; }
+  .row.is-dragging { background: var(--surface-2); }
+
+  /* Area body */
+  .area-body { padding-left: 12px; border-left: 2px solid var(--border); margin-left: 6px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 10px 16px;
+    border-radius: var(--r-md);
+    font-size: 12.5px; font-weight: 600;
+    background: var(--text); color: var(--surface);
+    box-shadow: var(--shadow-pop);
+    opacity: 0; transform: translateY(8px);
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .toast.show { opacity: 1; transform: none; }
+  .toast.err { background: var(--danger); }
+
+  /* Popover */
+  .popover {
+    position: absolute;
+    z-index: 100;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-pop);
+    padding: 4px;
+    min-width: 180px;
+    animation: pop .14s var(--ease);
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+  .popover-item {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: var(--r-sm);
+    font-size: 12.5px;
+    color: var(--text);
+    text-align: left;
+    font-weight: 500;
+    transition: background .1s;
+  }
+  .popover-item:hover { background: var(--hover); }
+  .popover-item.active { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+
+  /* Chevron rotation */
+  .chev { transition: transform .15s var(--ease); }
+  .chev.open { transform: rotate(90deg); }
+
+  /* Layout */
+  .container { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  /* Loader */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 28px; height: 28px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-/* ===========================================================
+/* ============================================================
    CONFIG
-   =========================================================== */
+   ============================================================ */
 const WEBHOOK_URL = "https://synchrosocial.app.n8n.cloud/webhook/project-central";
 const SHEET_URL   = "https://docs.google.com/spreadsheets/d/1ZAGZBMoT1M3i9DndmhNwHurx6iW3i9ESXiMmrPvCB38/edit";
 const STORAGE_KEY = "project-central:v3";
@@ -53,56 +294,94 @@ const LEGACY_STORAGE_KEY = "project-central:v2";
 
 const PROJECT_STATUSES = ["On track","At risk","Blocked","Shipped"];
 const PROJECT_STATUS_META = {
-  "On track": {bg:"#DCFCE7", text:"#15803D", dot:"#16A34A"},
-  "At risk":  {bg:"#FEF3C7", text:"#B45309", dot:"#D97706"},
-  "Blocked":  {bg:"#FEE2E2", text:"#B91C1C", dot:"#DC2626"},
-  "Shipped":  {bg:"#EDE9FE", text:"#6D28D9", dot:"#7C3AED"},
+  "On track": { bg:"#ECFDF5", text:"#047857", dot:"#10B981" },
+  "At risk":  { bg:"#FFFBEB", text:"#B45309", dot:"#F59E0B" },
+  "Blocked":  { bg:"#FEF2F2", text:"#B91C1C", dot:"#EF4444" },
+  "Shipped":  { bg:"#F5F3FF", text:"#6D28D9", dot:"#8B5CF6" },
 };
 
 const ITEM_STATUSES = ["done","in_progress","waiting","pending","to_plan","blocker"];
 const ITEM_STATUS_META = {
-  done:        { label: "Done",        icon: "✓", bg:"#DCFCE7", text:"#15803D", dot:"#16A34A" },
-  in_progress: { label: "In progress", icon: "→", bg:"#DBEAFE", text:"#1D4ED8", dot:"#2563EB" },
-  waiting:     { label: "Waiting",     icon: "⏸", bg:"#FEF3C7", text:"#B45309", dot:"#D97706" },
-  pending:     { label: "Pending",     icon: "•", bg:"#F1F5F9", text:"#475569", dot:"#64748B" },
-  to_plan:     { label: "To plan",     icon: "…", bg:"#F5F5F4", text:"#78716C", dot:"#A8A29E" },
-  blocker:     { label: "Blocker",     icon: "⛔", bg:"#FEE2E2", text:"#B91C1C", dot:"#DC2626" },
+  done:        { label: "Done",        bg:"#ECFDF5", text:"#047857", dot:"#10B981" },
+  in_progress: { label: "In progress", bg:"#EFF6FF", text:"#1D4ED8", dot:"#3B82F6" },
+  waiting:     { label: "Waiting",     bg:"#FFFBEB", text:"#B45309", dot:"#F59E0B" },
+  pending:     { label: "Pending",     bg:"#F4F4F5", text:"#52525B", dot:"#A1A1AA" },
+  to_plan:     { label: "To plan",     bg:"#FAFAF9", text:"#78716C", dot:"#D4D4D8" },
+  blocker:     { label: "Blocker",     bg:"#FEF2F2", text:"#B91C1C", dot:"#EF4444" },
 };
 
 const SECTIONS = [
   { key: "whatsBeenDone", label: "What's been done", emptyHint: "Nothing logged yet. Add an area to start tracking what's shipped." },
-  { key: "workingOnNow",  label: "Working on now",   emptyHint: "Nothing in flight. Add an area for the work happening now." },
-  { key: "blockers",      label: "Blockers or need from you", emptyHint: "No blockers. Add an area for things waiting on someone else." },
+  { key: "workingOnNow",  label: "Working on now",   emptyHint: "Nothing in flight. Add an area for work happening now." },
+  { key: "blockers",      label: "Blockers / need from you", emptyHint: "No blockers. Add an area for things waiting on someone else." },
 ];
 
-/* ===========================================================
-   IDs & utilities
-   =========================================================== */
-const gid = (prefix="id") => prefix + "-" + Math.random().toString(36).slice(2, 10);
+/* ============================================================
+   ICONS (inline SVG)
+   ============================================================ */
+const Icon = {
+  Chevron: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  Plus: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  X: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  Trash: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M3 4.5h10M6.5 7.5v4M9.5 7.5v4M4.5 4.5l.5 8a1 1 0 001 1h4a1 1 0 001-1l.5-8M6 4.5V3a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  Check: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  Grip: (props) => (
+    <svg viewBox="0 0 16 16" fill="currentColor" {...props}>
+      <circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/>
+      <circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/>
+      <circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/>
+    </svg>
+  ),
+  Sheet: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M2.5 6.5h11M2.5 10.5h11M6 2.5v11M10 2.5v11" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  ),
+  Download: (props) => (
+    <svg viewBox="0 0 16 16" fill="none" {...props}>
+      <path d="M8 2.5v8m0 0L5 7.5m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+};
 
-function emptyArea(name="New area") {
-  return { id: gid("a"), name, collapsed: false, items: [] };
-}
-function emptyItem(status="pending") {
-  return { id: gid("i"), text: "", status, owner: "" };
-}
+/* ============================================================
+   UTIL
+   ============================================================ */
+const gid = (prefix="id") => prefix + "-" + Math.random().toString(36).slice(2, 10);
+function emptyArea(name="New area") { return { id: gid("a"), name, collapsed: false, items: [] }; }
+function emptyItem(status="pending") { return { id: gid("i"), text: "", status, owner: "" }; }
 function emptyProject() {
   return {
-    id: gid("p"),
-    name: "New project",
-    status: "On track",
-    nextMilestone: "",
-    eta: "",
-    sortOrder: 0,
-    whatsBeenDone: [emptyArea("Pipeline")],
-    workingOnNow:  [],
-    blockers:      [],
+    id: gid("p"), name: "New project", status: "On track",
+    nextMilestone: "", eta: "", sortOrder: 0,
+    whatsBeenDone: [], workingOnNow: [], blockers: [],
   };
 }
 
-/* ===========================================================
-   Migration: parse legacy rich-text into structured areas
-   =========================================================== */
+/* ============================================================
+   Legacy text → structured  (and "looks like owner" heuristic)
+   ============================================================ */
 const ITEM_STATUS_FROM_MARKER = {
   "✓": "done", "○": "in_progress", "⏸": "waiting",
   "→": "in_progress", "·": "pending", "…": "to_plan", "•": "pending",
@@ -112,11 +391,34 @@ const TAG_TO_STATUS = {
   "IN PROGRESS": "in_progress", "TO PLAN": "to_plan", "BLOCKER": "blocker",
 };
 
+function looksLikeOwner(s) {
+  if (!s) return false;
+  const t = s.trim();
+  if (!t || t.length > 30) return false;
+  if (/[.!?]$/.test(t)) return false;
+  if (/\.\s/.test(t)) return false;
+  // disallow obvious sentence words
+  if (/^(via|for|the|and|or|on|in|at|with|via|every|each)\b/i.test(t)) return false;
+  return true;
+}
+
 function stripMdEscapes(s) { return s.replace(/\\([\[\]\\_*])/g, "$1"); }
+
+function splitOwner(text) {
+  // Walk from rightmost " — " backward; the first chunk that "looks like an owner" wins.
+  const parts = text.split(/\s+—\s+/);
+  if (parts.length < 2) return { text, owner: "" };
+  for (let i = parts.length - 1; i >= 1; i--) {
+    const candidate = parts.slice(i).join(" — ").trim();
+    if (looksLikeOwner(candidate)) {
+      return { text: parts.slice(0, i).join(" — ").trim(), owner: candidate };
+    }
+  }
+  return { text, owner: "" };
+}
 
 function parseSectionText(text) {
   if (!text || typeof text !== "string") return [];
-  // Split on newlines OR on runs of 3+ spaces (some sources collapse newlines to spaces).
   const lines = text
     .split(/\r?\n|(?:[ \t]{3,})/g)
     .map(l => stripMdEscapes(l).trim())
@@ -130,13 +432,11 @@ function parseSectionText(text) {
     let line = raw;
     let status = null;
 
-    // status marker at start
     const first = line.charAt(0);
     if (ITEM_STATUS_FROM_MARKER[first]) {
       status = ITEM_STATUS_FROM_MARKER[first];
       line = line.slice(1).trim();
     }
-    // optional [TAG] override
     const tagMatch = line.match(/^\[(DONE|WAITING|PENDING|IN PROGRESS|TO PLAN|BLOCKER)\]\s*/i);
     if (tagMatch) {
       status = TAG_TO_STATUS[tagMatch[1].toUpperCase()] || status;
@@ -144,49 +444,44 @@ function parseSectionText(text) {
     }
 
     if (status) {
-      // item — pull trailing " — Owner"
-      let text = line;
-      let owner = "";
-      const parts = text.split(/\s+—\s+/);
-      if (parts.length >= 2) {
-        owner = parts.pop().trim();
-        text  = parts.join(" — ").trim();
-      }
-      if (!current) {
-        current = emptyArea("Items");
-        areas.push(current);
-      }
-      current.items.push({ id: gid("i"), text, status, owner });
+      const split = splitOwner(line);
+      if (!current) { current = emptyArea("Items"); areas.push(current); }
+      current.items.push({ id: gid("i"), text: split.text, status, owner: split.owner });
     } else {
-      // header — new area
       current = emptyArea(line);
       areas.push(current);
     }
   }
-
-  // Drop areas that are empty AND followed by another area (pure section dividers like "TASKS BY AREA").
-  return areas.filter((a, i) => {
-    if (a.items.length > 0) return true;
-    const isLast = i === areas.length - 1;
-    return isLast; // keep last empty area as scaffold
-  });
+  // Drop empty section-divider areas (kept only if last)
+  return areas.filter((a, i) => a.items.length > 0 || i === areas.length - 1);
 }
 
 function migrateSection(value) {
-  if (Array.isArray(value)) return value.map(normalizeArea);
+  if (Array.isArray(value)) return value.map(normalizeArea).map(repairArea);
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return [];
-    // Could be JSON we previously wrote
     if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
       try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed.map(normalizeArea);
+        if (Array.isArray(parsed)) return parsed.map(normalizeArea).map(repairArea);
       } catch {}
     }
-    return parseSectionText(trimmed);
+    return parseSectionText(trimmed).map(repairArea);
   }
   return [];
+}
+
+function repairArea(a) {
+  return { ...a, items: a.items.map(repairItem) };
+}
+function repairItem(it) {
+  // If a previously-saved owner doesn't actually look like an owner (legacy bug),
+  // fold it back into the text.
+  if (it.owner && !looksLikeOwner(it.owner)) {
+    return { ...it, text: (it.text + (it.text ? " — " : "") + it.owner).trim(), owner: "" };
+  }
+  return it;
 }
 
 function normalizeArea(a, i=0) {
@@ -219,24 +514,18 @@ function normalizeProject(p, i=0) {
   };
 }
 
-/* ===========================================================
+/* ============================================================
    API
-   =========================================================== */
+   ============================================================ */
 function serializeForSheet(projects) {
-  // Sheet columns stay the same; the three section columns hold JSON strings.
   return projects.map(p => ({
-    id: p.id,
-    name: p.name,
-    status: p.status,
-    nextMilestone: p.nextMilestone,
-    eta: p.eta,
-    sortOrder: p.sortOrder,
+    id: p.id, name: p.name, status: p.status,
+    nextMilestone: p.nextMilestone, eta: p.eta, sortOrder: p.sortOrder,
     whatsBeenDone: JSON.stringify(p.whatsBeenDone || []),
     workingOnNow:  JSON.stringify(p.workingOnNow  || []),
     blockers:      JSON.stringify(p.blockers      || []),
   }));
 }
-
 async function apiLoad() {
   const r = await fetch(WEBHOOK_URL, { method: "GET" });
   if (!r.ok) throw new Error("Load failed: " + r.status);
@@ -261,79 +550,91 @@ function saveLocal(projects) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); } catch {}
 }
 
-/* ===========================================================
-   Drag state (single shared registry to support cross-area moves)
-   =========================================================== */
+/* ============================================================
+   DRAG controller
+   ============================================================ */
 const DragCtx = React.createContext(null);
-
 function useDragController() {
-  const [drag, setDrag] = React.useState(null); // { kind:'project'|'area'|'item', projectId?, sectionKey?, areaId?, itemId? }
+  const [drag, setDrag] = React.useState(null);
   return [drag, setDrag];
 }
 
-/* ===========================================================
-   COMPONENTS
-   =========================================================== */
+/* ============================================================
+   Hooks
+   ============================================================ */
 const { useState, useEffect, useCallback, useRef, useMemo, useContext, useLayoutEffect } = React;
 
-/* ----- Toast ----- */
-function Toast({ toast }) {
+function useOutsideClick(ref, onOutside) {
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onOutside(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [ref, onOutside]);
+}
+
+function useAutoResize(ref, value) {
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [ref, value]);
+}
+
+/* ============================================================
+   Inline editors
+   ============================================================ */
+function InlineInput({ value, onChange, placeholder, ariaLabel, style, onEnter }) {
   return (
-    <div className={`toast${toast.show?" show":""}`}
-      style={{background: toast.ok ? "#0F172A" : "#EF4444"}}
-      role="status" aria-live="polite">
-      {toast.msg}
-    </div>
+    <input className="inline-input" type="text" value={value}
+      onChange={e=>onChange(e.target.value)}
+      placeholder={placeholder} aria-label={ariaLabel} style={style}
+      onKeyDown={e=>{ if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(); } }}/>
+  );
+}
+function InlineTextarea({ value, onChange, placeholder, ariaLabel, style, onEnter }) {
+  const ref = useRef(null);
+  useAutoResize(ref, value);
+  return (
+    <textarea ref={ref} className="inline-input" value={value} rows={1}
+      onChange={e=>onChange(e.target.value)}
+      placeholder={placeholder} aria-label={ariaLabel} style={style}
+      onKeyDown={e=>{
+        if (e.key === "Enter" && !e.shiftKey && onEnter) { e.preventDefault(); onEnter(); }
+      }}/>
   );
 }
 
-/* ----- Status pill (project) ----- */
-function ProjectStatusPill({ value, onChange }) {
-  const m = PROJECT_STATUS_META[value] || PROJECT_STATUS_META["On track"];
-  return (
-    <div style={{position:"relative", display:"inline-flex", alignItems:"center"}}>
-      <div style={{position:"absolute", left:10, width:8, height:8, borderRadius:"50%", background:m.dot, pointerEvents:"none"}}/>
-      <select value={value} onChange={e=>onChange(e.target.value)}
-        aria-label="Project status"
-        style={{background:m.bg, color:m.text, border:"none", borderRadius:20, padding:"6px 28px 6px 24px", fontSize:12, fontWeight:700, outline:"none"}}>
-        {PROJECT_STATUSES.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
-}
-
-/* ----- Item status menu ----- */
-function ItemStatusBadge({ value, onChange }) {
+/* ============================================================
+   Status pill (item)
+   ============================================================ */
+function ItemStatusPill({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const m = ITEM_STATUS_META[value] || ITEM_STATUS_META.pending;
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  useOutsideClick(ref, () => setOpen(false));
   return (
     <div ref={ref} style={{position:"relative"}}>
-      <button type="button" onClick={()=>setOpen(o=>!o)}
+      <button type="button" className="status-pill focusable"
+        onClick={()=>setOpen(o=>!o)}
+        aria-haspopup="listbox" aria-expanded={open}
         aria-label={`Status: ${m.label}. Click to change.`}
-        className="focus-ring"
-        style={{display:"inline-flex", alignItems:"center", gap:6, background:m.bg, color:m.text,
-          borderRadius:14, padding:"3px 9px", fontSize:11, fontWeight:700, minWidth:96, justifyContent:"flex-start"}}>
-        <span style={{fontSize:12, lineHeight:1}}>{m.icon}</span>
-        <span style={{whiteSpace:"nowrap"}}>{m.label}</span>
+        style={{background:m.bg, color:m.text, minWidth:96, justifyContent:"flex-start"}}>
+        <span className="dot" style={{background:m.dot}}/>
+        <span>{m.label}</span>
       </button>
       {open && (
-        <div className="menu card" style={{position:"absolute", zIndex:30, top:"calc(100% + 4px)", left:0, padding:4, minWidth:160}}>
+        <div className="popover" role="listbox" style={{top:"calc(100% + 4px)", left:0}}>
           {ITEM_STATUSES.map(s => {
             const sm = ITEM_STATUS_META[s];
+            const active = s === value;
             return (
               <button key={s} type="button"
-                onClick={()=>{ onChange(s); setOpen(false); }}
-                style={{display:"flex", alignItems:"center", gap:8, width:"100%", padding:"7px 9px", borderRadius:6,
-                  background:s===value?"#F1F5F9":"transparent", color:"#0F172A", fontSize:12, fontWeight:600, textAlign:"left"}}>
-                <span style={{display:"inline-flex", width:18, height:18, borderRadius:"50%", background:sm.bg, color:sm.text, alignItems:"center", justifyContent:"center", fontSize:11}}>{sm.icon}</span>
-                {sm.label}
+                className={`popover-item ${active?"active":""}`}
+                role="option" aria-selected={active}
+                onClick={()=>{ onChange(s); setOpen(false); }}>
+                <span style={{width:8, height:8, borderRadius:"50%", background:sm.dot, flexShrink:0}}/>
+                <span style={{flex:1}}>{sm.label}</span>
+                {active && <Icon.Check style={{color:"var(--accent)"}}/>}
               </button>
             );
           })}
@@ -343,98 +644,151 @@ function ItemStatusBadge({ value, onChange }) {
   );
 }
 
-/* ----- Inline editable text (single-line, grows naturally) ----- */
-function InlineText({ value, onChange, placeholder, style, multiline=false, ariaLabel, onEnter }) {
+/* ============================================================
+   Project status pill (custom popover, matches design)
+   ============================================================ */
+function ProjectStatusPill({ value, onChange }) {
+  const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useLayoutEffect(() => {
-    if (multiline && ref.current) {
-      ref.current.style.height = "auto";
-      ref.current.style.height = ref.current.scrollHeight + "px";
-    }
-  }, [value, multiline]);
-  if (multiline) {
-    return (
-      <textarea
-        ref={ref}
-        value={value}
-        onChange={e=>onChange(e.target.value)}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        rows={1}
-        style={{
-          width:"100%", border:"1px solid transparent", background:"transparent",
-          padding:"4px 6px", borderRadius:6, fontSize:13, lineHeight:1.5,
-          color:"#0F172A", outline:"none", fontFamily:"inherit", overflow:"hidden",
-          ...style,
-        }}
-        onFocus={e=>{ e.target.style.borderColor="#E2E8F0"; e.target.style.background="#fff"; }}
-        onBlur ={e=>{ e.target.style.borderColor="transparent"; e.target.style.background="transparent"; }}
-        onKeyDown={e=>{
-          if (e.key === "Enter" && !e.shiftKey && onEnter) { e.preventDefault(); onEnter(); }
-        }}
-      />
-    );
-  }
+  const m = PROJECT_STATUS_META[value] || PROJECT_STATUS_META["On track"];
+  useOutsideClick(ref, () => setOpen(false));
   return (
-    <input
-      type="text"
-      value={value}
-      onChange={e=>onChange(e.target.value)}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      style={{
-        width:"100%", border:"1px solid transparent", background:"transparent",
-        padding:"4px 6px", borderRadius:6, fontSize:13, color:"#0F172A", outline:"none",
-        fontFamily:"inherit",
-        ...style,
-      }}
-      onFocus={e=>{ e.target.style.borderColor="#E2E8F0"; e.target.style.background="#fff"; }}
-      onBlur ={e=>{ e.target.style.borderColor="transparent"; e.target.style.background="transparent"; }}
-      onKeyDown={e=>{ if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(); } }}
-    />
+    <div ref={ref} style={{position:"relative"}}>
+      <button type="button" className="status-pill focusable"
+        onClick={()=>setOpen(o=>!o)}
+        aria-haspopup="listbox" aria-expanded={open}
+        aria-label={`Project status: ${value}. Click to change.`}
+        style={{background:m.bg, color:m.text, padding:"5px 12px 5px 10px", fontSize:12}}>
+        <span className="dot" style={{background:m.dot, width:7, height:7}}/>
+        <span>{value}</span>
+      </button>
+      {open && (
+        <div className="popover" role="listbox" style={{top:"calc(100% + 4px)", right:0, minWidth:160}}>
+          {PROJECT_STATUSES.map(s => {
+            const sm = PROJECT_STATUS_META[s];
+            const active = s === value;
+            return (
+              <button key={s} type="button"
+                className={`popover-item ${active?"active":""}`}
+                role="option" aria-selected={active}
+                onClick={()=>{ onChange(s); setOpen(false); }}>
+                <span style={{width:8, height:8, borderRadius:"50%", background:sm.dot, flexShrink:0}}/>
+                <span style={{flex:1}}>{s}</span>
+                {active && <Icon.Check style={{color:"var(--accent)"}}/>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
-/* ----- Collapse caret ----- */
-function CollapseCaret({ open, onClick, label }) {
+/* ============================================================
+   Owner chip + popover
+   ============================================================ */
+function OwnerChip({ value, onChange, suggestions }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+  useOutsideClick(ref, () => { commit(); });
+
+  useEffect(() => { setDraft(value || ""); }, [value]);
+  useEffect(() => { if (open && inputRef.current) inputRef.current.focus(); }, [open]);
+
+  const commit = () => {
+    if (!open) return;
+    if (draft !== value) onChange(draft.trim());
+    setOpen(false);
+  };
+
+  const filtered = useMemo(() => {
+    const q = draft.toLowerCase().trim();
+    return Array.from(new Set(suggestions))
+      .filter(s => s && s !== value && (!q || s.toLowerCase().includes(q)))
+      .slice(0, 8);
+  }, [suggestions, draft, value]);
+
+  return (
+    <div ref={ref} style={{position:"relative", justifySelf:"end"}}>
+      {value ? (
+        <button type="button" className="chip focusable" onClick={()=>setOpen(o=>!o)}
+          aria-label={`Owner: ${value}. Click to change.`} title={value}>
+          {value}
+        </button>
+      ) : (
+        <button type="button" className="chip ghost-chip focusable" onClick={()=>setOpen(o=>!o)}
+          aria-label="Add owner">
+          + Owner
+        </button>
+      )}
+      {open && (
+        <div className="popover" style={{top:"calc(100% + 4px)", right:0, minWidth:200}}>
+          <input ref={inputRef} className="inline-input" value={draft}
+            placeholder="Owner name (Me, Kasper, …)"
+            onChange={e=>setDraft(e.target.value)}
+            onKeyDown={e=>{
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+              if (e.key === "Escape") { e.preventDefault(); setDraft(value||""); setOpen(false); }
+            }}
+            style={{marginBottom:filtered.length?4:0, background:"var(--surface-2)", border:"1px solid var(--border)"}}/>
+          {filtered.map(s => (
+            <button key={s} type="button" className="popover-item"
+              onClick={()=>{ onChange(s); setOpen(false); }}>
+              {s}
+            </button>
+          ))}
+          {value && (
+            <button type="button" className="popover-item"
+              style={{color:"var(--danger)"}}
+              onClick={()=>{ onChange(""); setOpen(false); }}>
+              <Icon.X/> Clear owner
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   Collapse caret
+   ============================================================ */
+function Caret({ open, onClick, label }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} aria-expanded={open}
-      className="icon-btn focus-ring"
-      style={{display:"inline-flex", alignItems:"center", justifyContent:"center", width:20, height:20, color:"#64748B"}}>
-      <span style={{display:"inline-block", transform:open?"rotate(90deg)":"none", transition:"transform .15s", fontSize:11}}>▶</span>
+      className="iconbtn focusable" style={{width:22, height:22}}>
+      <Icon.Chevron className={`chev${open?" open":""}`}/>
     </button>
   );
 }
 
-/* ===========================================================
+/* ============================================================
    Item row
-   =========================================================== */
-function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, onDuplicate }) {
+   ============================================================ */
+function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, ownerSuggestions }) {
   const [drag, setDrag] = useContext(DragCtx);
-  const [dropPos, setDropPos] = useState(null); // 'before' | 'after' | null
-  const isDragSrc = drag?.kind==='item' && drag.itemId === item.id;
+  const [dropPos, setDropPos] = useState(null);
+  const isSrc = drag?.kind==='item' && drag.itemId === item.id;
 
   const dragStart = (e) => {
     setDrag({ kind:'item', projectId, sectionKey, areaId, itemId: item.id });
     e.dataTransfer.effectAllowed = 'move';
-    // Firefox requires data
     try { e.dataTransfer.setData('text/plain', item.id); } catch {}
+    e.stopPropagation();
   };
   const dragOver = (e) => {
     if (drag?.kind !== 'item') return;
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const before = (e.clientY - rect.top) < rect.height/2;
-    setDropPos(before ? 'before' : 'after');
+    e.preventDefault(); e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropPos((e.clientY - r.top) < r.height/2 ? 'before' : 'after');
   };
   const dragLeave = () => setDropPos(null);
   const drop = (e) => {
     if (drag?.kind !== 'item') return;
-    e.preventDefault();
-    e.stopPropagation();
-    const pos = dropPos;
-    setDropPos(null);
+    e.preventDefault(); e.stopPropagation();
+    const pos = dropPos; setDropPos(null);
     window.__pcDrop?.({ targetKind:'item', projectId, sectionKey, areaId, itemId: item.id, position: pos });
   };
 
@@ -446,54 +800,36 @@ function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, onDu
       onDragLeave={dragLeave}
       onDrop={drop}
       onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
-      className={`${isDragSrc ? 'ghost' : ''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
-      style={{
-        display:"grid", gridTemplateColumns:"20px 110px 1fr auto auto", gap:8,
-        alignItems:"center", padding:"6px 8px", borderRadius:8,
-        transition:"background .15s",
-      }}
-      onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
-      onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-    >
-      <span className="grip" aria-hidden="true" title="Drag to reorder">⠿</span>
-      <ItemStatusBadge value={item.status} onChange={(s)=>onChange({ ...item, status: s })}/>
-      <InlineText
+      className={`row ${isSrc?'ghost is-dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}>
+      <span className="grip" aria-hidden="true" title="Drag to reorder">
+        <Icon.Grip style={{width:14, height:14}}/>
+      </span>
+      <ItemStatusPill value={item.status} onChange={(s)=>onChange({ ...item, status: s })}/>
+      <InlineTextarea
         value={item.text}
         onChange={(t)=>onChange({ ...item, text: t })}
         placeholder="Describe this item…"
-        ariaLabel="Item text"
-        multiline
+        ariaLabel="Item description"
+        style={{paddingTop:5, paddingBottom:5}}
       />
-      <InlineText
-        value={item.owner}
-        onChange={(o)=>onChange({ ...item, owner: o })}
-        placeholder="Owner"
-        ariaLabel="Owner"
-        style={{
-          width:90, fontSize:12, color:"#475569", background:"#F1F5F9",
-          borderRadius:12, padding:"4px 10px", textAlign:"center",
-        }}
-      />
-      <div style={{display:"flex", gap:2}}>
-        <button type="button" className="icon-btn focus-ring" onClick={onDuplicate} aria-label="Duplicate item" title="Duplicate">
-          <span style={{fontSize:12}}>⎘</span>
-        </button>
-        <button type="button" className="icon-btn danger focus-ring" onClick={onDelete} aria-label="Delete item" title="Delete">
-          <span style={{fontSize:13}}>×</span>
+      <OwnerChip value={item.owner} onChange={(o)=>onChange({ ...item, owner: o })} suggestions={ownerSuggestions}/>
+      <div className="row-actions">
+        <button type="button" className="iconbtn danger focusable" onClick={onDelete} aria-label="Delete item" title="Delete">
+          <Icon.X/>
         </button>
       </div>
     </div>
   );
 }
 
-/* ===========================================================
+/* ============================================================
    Area block
-   =========================================================== */
-function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
+   ============================================================ */
+function AreaBlock({ projectId, sectionKey, area, onChange, onDelete, ownerSuggestions }) {
   const [drag, setDrag] = useContext(DragCtx);
-  const [dropPos, setDropPos] = useState(null); // 'before' | 'after' | 'into' | null
+  const [dropPos, setDropPos] = useState(null);
+  const isSrc = drag?.kind==='area' && drag.areaId === area.id;
 
-  const isDragSrc = drag?.kind==='area' && drag.areaId === area.id;
   const dragStart = (e) => {
     setDrag({ kind:'area', projectId, sectionKey, areaId: area.id });
     e.dataTransfer.effectAllowed = 'move';
@@ -503,25 +839,16 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
   const dragOver = (e) => {
     if (!drag) return;
     e.preventDefault();
-    if (drag.kind === 'item') {
-      // Allow dropping onto empty area body
-      if (area.items.length === 0) {
-        setDropPos('into');
-      }
-      return;
-    }
+    if (drag.kind === 'item' && area.items.length === 0) { setDropPos('into'); return; }
     if (drag.kind !== 'area') return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const before = (e.clientY - rect.top) < rect.height/2;
-    setDropPos(before ? 'before' : 'after');
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropPos((e.clientY - r.top) < r.height/2 ? 'before' : 'after');
   };
   const dragLeave = () => setDropPos(null);
   const drop = (e) => {
     if (!drag) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const pos = dropPos;
-    setDropPos(null);
+    e.preventDefault(); e.stopPropagation();
+    const pos = dropPos; setDropPos(null);
     if (drag.kind === 'item' && pos === 'into') {
       window.__pcDrop?.({ targetKind:'area-empty', projectId, sectionKey, areaId: area.id });
     } else if (drag.kind === 'area') {
@@ -531,24 +858,14 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
 
   const setName = (name) => onChange({ ...area, name });
   const toggleCollapsed = () => onChange({ ...area, collapsed: !area.collapsed });
-
   const updateItem = (i, updated) => onChange({ ...area, items: area.items.map((it, idx) => idx === i ? updated : it) });
   const deleteItem = (i) => onChange({ ...area, items: area.items.filter((_, idx) => idx !== i) });
-  const duplicateItem = (i) => {
-    const src = area.items[i];
-    const dup = { ...src, id: gid("i") };
-    const next = [...area.items];
-    next.splice(i+1, 0, dup);
-    onChange({ ...area, items: next });
-  };
-  const addItem = () => {
-    onChange({ ...area, collapsed: false, items: [...area.items, emptyItem()] });
-  };
+  const addItem = () => onChange({ ...area, collapsed: false, items: [...area.items, emptyItem()] });
 
-  const counts = useMemo(() => {
-    const done = area.items.filter(i => i.status === "done").length;
-    return { done, total: area.items.length };
-  }, [area.items]);
+  const counts = useMemo(() => ({
+    done: area.items.filter(i => i.status === "done").length,
+    total: area.items.length,
+  }), [area.items]);
 
   return (
     <div
@@ -558,50 +875,49 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
       onDragLeave={dragLeave}
       onDrop={drop}
       onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
-      className={`${isDragSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${dropPos==='into'?'drop-into':''}`}
-      style={{
-        border:"1px solid #E2E8F0", borderRadius:10, marginBottom:8, background:"#fff",
-      }}
-    >
-      <div style={{display:"flex", alignItems:"center", gap:6, padding:"8px 10px"}}>
-        <span className="grip" aria-hidden="true" title="Drag to reorder area">⠿</span>
-        <CollapseCaret open={!area.collapsed} onClick={toggleCollapsed}
+      className={`${isSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${dropPos==='into'?'drop-into':''}`}
+      style={{marginTop:8}}>
+      <div style={{display:"flex", alignItems:"center", gap:6, padding:"2px 4px"}}>
+        <span className="grip" aria-hidden="true" title="Drag to reorder area">
+          <Icon.Grip style={{width:12, height:12}}/>
+        </span>
+        <Caret open={!area.collapsed} onClick={toggleCollapsed}
           label={area.collapsed ? "Expand area" : "Collapse area"}/>
-        <InlineText
+        <InlineInput
           value={area.name}
           onChange={setName}
           placeholder="Area name (e.g. N8N, Email Copy)"
           ariaLabel="Area name"
-          style={{fontWeight:700, fontSize:13, color:"#0F172A"}}
+          style={{fontWeight:600, fontSize:13.5, color:"var(--text)", flex:1, minWidth:0}}
         />
         {counts.total > 0 && (
-          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600, whiteSpace:"nowrap"}}>
-            {counts.done}/{counts.total} done
+          <span style={{fontSize:11.5, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap"}}>
+            {counts.done}/{counts.total}
           </span>
         )}
-        <button type="button" onClick={addItem}
-          className="focus-ring"
-          style={{fontSize:11, fontWeight:700, color:"#6366F1", padding:"4px 10px", borderRadius:6, background:"#EEF2FF", whiteSpace:"nowrap"}}>
-          + Item
+        <button type="button" onClick={addItem} className="btn-ghost focusable"
+          style={{fontSize:11.5, color:"var(--accent-text)"}}>
+          <Icon.Plus style={{width:11, height:11}}/> Item
         </button>
-        <button type="button" onClick={onDelete} className="icon-btn danger focus-ring" aria-label="Delete area" title="Delete area">
-          <span style={{fontSize:13}}>×</span>
+        <button type="button" onClick={onDelete} className="iconbtn danger focusable"
+          aria-label="Delete area" title="Delete area">
+          <Icon.X/>
         </button>
       </div>
       {!area.collapsed && (
-        <div style={{padding:"0 8px 8px 8px"}}>
+        <div className="area-body" style={{marginTop:4}}>
           {area.items.length === 0 && (
-            <div style={{fontSize:12, color:"#94A3B8", padding:"8px 10px", fontStyle:"italic"}}>
-              No items yet — click <strong>+ Item</strong> or drop an item here.
+            <div style={{fontSize:12, color:"var(--text-muted)", padding:"6px 8px", fontStyle:"italic"}}>
+              Empty — click <strong style={{color:"var(--text-soft)"}}>+ Item</strong> or drop one here.
             </div>
           )}
           {area.items.map((it, i) => (
             <ItemRow key={it.id}
               projectId={projectId} sectionKey={sectionKey} areaId={area.id}
               item={it}
+              ownerSuggestions={ownerSuggestions}
               onChange={(updated)=>updateItem(i, updated)}
               onDelete={()=>deleteItem(i)}
-              onDuplicate={()=>duplicateItem(i)}
             />
           ))}
         </div>
@@ -610,11 +926,11 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
   );
 }
 
-/* ===========================================================
+/* ============================================================
    Section block
-   =========================================================== */
-function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange, collapsed, onToggleCollapsed }) {
-  const [drag, setDrag] = useContext(DragCtx);
+   ============================================================ */
+function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange, collapsed, onToggleCollapsed, ownerSuggestions }) {
+  const [drag] = useContext(DragCtx);
   const [dropEmpty, setDropEmpty] = useState(false);
 
   const updateArea = (i, updated) => onChange(areas.map((a, idx) => idx === i ? updated : a));
@@ -627,36 +943,28 @@ function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange
   }, [areas]);
 
   const sectionDragOver = (e) => {
-    if (!drag) return;
-    if (drag.kind === 'item' && areas.length === 0) {
-      e.preventDefault();
-      setDropEmpty(true);
-    }
+    if (drag?.kind === 'item' && areas.length === 0) { e.preventDefault(); setDropEmpty(true); }
   };
   const sectionDrop = (e) => {
-    if (!drag) return;
-    if (drag.kind === 'item' && areas.length === 0) {
-      e.preventDefault();
-      setDropEmpty(false);
-      // create an area + drop item into it
+    if (drag?.kind === 'item' && areas.length === 0) {
+      e.preventDefault(); setDropEmpty(false);
       window.__pcDrop?.({ targetKind:'section-empty', projectId, sectionKey });
     }
   };
 
   return (
-    <div style={{marginTop:18}}>
-      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:8}}>
-        <CollapseCaret open={!collapsed} onClick={onToggleCollapsed}
+    <div style={{marginTop:24}}>
+      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:8, paddingBottom:6, borderBottom:"1px solid var(--border)"}}>
+        <Caret open={!collapsed} onClick={onToggleCollapsed}
           label={collapsed?"Expand section":"Collapse section"}/>
-        <div style={{fontSize:11, fontWeight:800, letterSpacing:".08em", color:"#64748B", textTransform:"uppercase"}}>{label}</div>
+        <div className="section-label">{label}</div>
         {counts.total > 0 && (
-          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600}}>· {counts.done}/{counts.total}</span>
+          <span style={{fontSize:11, color:"var(--text-muted)", fontWeight:600}}>· {counts.done}/{counts.total}</span>
         )}
         <div style={{flex:1}}/>
-        <button type="button" onClick={addArea}
-          className="focus-ring"
-          style={{fontSize:11, fontWeight:700, color:"#475569", padding:"5px 12px", borderRadius:6, background:"#F1F5F9"}}>
-          + Area
+        <button type="button" onClick={addArea} className="btn-ghost focusable"
+          style={{fontSize:11.5}}>
+          <Icon.Plus style={{width:11, height:11}}/> Area
         </button>
       </div>
       {!collapsed && (
@@ -664,8 +972,8 @@ function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange
           {areas.length === 0 ? (
             <div
               className={dropEmpty ? "drop-into" : ""}
-              style={{padding:"18px", borderRadius:10, border:"1px dashed #CBD5E1",
-                color:"#94A3B8", fontSize:12, textAlign:"center", background:"#F8FAFC"}}>
+              style={{padding:"22px 16px", borderRadius:"var(--r-md)", border:"1px dashed var(--border-strong)",
+                color:"var(--text-muted)", fontSize:12.5, textAlign:"center", background:"transparent"}}>
               {emptyHint}
             </div>
           ) : (
@@ -673,6 +981,7 @@ function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange
               <AreaBlock key={a.id}
                 projectId={projectId} sectionKey={sectionKey}
                 area={a}
+                ownerSuggestions={ownerSuggestions}
                 onChange={(updated)=>updateArea(i, updated)}
                 onDelete={()=>deleteArea(i)}
               />
@@ -684,16 +993,15 @@ function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange
   );
 }
 
-/* ===========================================================
+/* ============================================================
    Project card
-   =========================================================== */
+   ============================================================ */
 function ProjectCard({ project, onChange, onDelete }) {
   const [drag, setDrag] = useContext(DragCtx);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dropPos, setDropPos] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [collapsedCard, setCollapsedCard] = useState(false);
-  const handleRef = useRef(null);
   const [dragArmed, setDragArmed] = useState(false);
 
   const set = (field) => (v) => onChange({ ...project, [field]: v });
@@ -707,22 +1015,27 @@ function ProjectCard({ project, onChange, onDelete }) {
   const dragOver = (e) => {
     if (drag?.kind !== 'project') return;
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const before = (e.clientY - rect.top) < rect.height/2;
-    setDropPos(before ? 'before' : 'after');
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropPos((e.clientY - r.top) < r.height/2 ? 'before' : 'after');
   };
   const dragLeave = () => setDropPos(null);
   const drop = (e) => {
     if (drag?.kind !== 'project') return;
     e.preventDefault();
-    const pos = dropPos;
-    setDropPos(null);
+    const pos = dropPos; setDropPos(null);
     window.__pcDrop?.({ targetKind:'project', projectId: project.id, position: pos });
   };
 
   const isSrc = drag?.kind==='project' && drag.projectId === project.id;
   const totalItems = (project.whatsBeenDone||[]).concat(project.workingOnNow||[], project.blockers||[])
     .reduce((acc,a)=>acc + (a.items?.length||0), 0);
+
+  const ownerSuggestions = useMemo(() => {
+    const all = (project.whatsBeenDone||[]).concat(project.workingOnNow||[], project.blockers||[])
+      .flatMap(a => (a.items||[]).map(i => (i.owner||"").trim()))
+      .filter(Boolean);
+    return Array.from(new Set(all));
+  }, [project]);
 
   return (
     <div
@@ -733,38 +1046,41 @@ function ProjectCard({ project, onChange, onDelete }) {
       onDrop={drop}
       onDragEnd={()=>{ setDrag(null); setDropPos(null); setDragArmed(false); }}
       className={`card ${isSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
-      style={{padding:"18px 22px", marginBottom:18}}>
-      <div style={{display:"flex", alignItems:"center", gap:10, flexWrap:"wrap"}}>
+      style={{padding:"18px 22px", marginBottom:16}}>
+      <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
         <span
-          ref={handleRef}
           className="grip"
           onMouseDown={()=>setDragArmed(true)}
           onMouseUp={()=>setDragArmed(false)}
           title="Drag to reorder project"
           aria-label="Drag handle"
-          style={{fontSize:18, padding:"0 4px"}}>⠿</span>
-        <CollapseCaret open={!collapsedCard} onClick={()=>setCollapsedCard(c=>!c)}
+          style={{padding:"0 2px"}}>
+          <Icon.Grip style={{width:16, height:16}}/>
+        </span>
+        <Caret open={!collapsedCard} onClick={()=>setCollapsedCard(c=>!c)}
           label={collapsedCard ? "Expand project" : "Collapse project"}/>
-        <InlineText value={project.name} onChange={set("name")}
+        <InlineInput value={project.name} onChange={set("name")}
           placeholder="Project name"
           ariaLabel="Project name"
-          style={{flex:1, minWidth:180, fontSize:17, fontWeight:800, color:"#0F172A", padding:"4px 8px"}}
+          style={{flex:1, minWidth:160, fontSize:17, fontWeight:700, color:"var(--text)", padding:"4px 8px"}}
         />
         <ProjectStatusPill value={project.status} onChange={set("status")}/>
         {totalItems > 0 && (
-          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600}}>{totalItems} items</span>
+          <span style={{fontSize:11, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap"}}>{totalItems} items</span>
         )}
         {confirmDelete ? (
           <div style={{display:"flex", gap:6, alignItems:"center"}}>
-            <span style={{fontSize:12, color:"#64748B"}}>Delete?</span>
+            <span style={{fontSize:11.5, color:"var(--text-soft)"}}>Delete?</span>
             <button type="button" onClick={()=>{onDelete(project.id); setConfirmDelete(false);}}
-              style={{background:"#EF4444", color:"#fff", borderRadius:6, padding:"5px 10px", fontSize:12, fontWeight:700}}>Yes</button>
+              className="focusable"
+              style={{background:"var(--danger)", color:"#fff", borderRadius:"var(--r-sm)", padding:"5px 10px", fontSize:11.5, fontWeight:700}}>Yes</button>
             <button type="button" onClick={()=>setConfirmDelete(false)}
-              style={{background:"#F1F5F9", color:"#475569", borderRadius:6, padding:"5px 10px", fontSize:12, fontWeight:700}}>No</button>
+              className="focusable"
+              style={{background:"var(--hover)", color:"var(--text-soft)", borderRadius:"var(--r-sm)", padding:"5px 10px", fontSize:11.5, fontWeight:700}}>No</button>
           </div>
         ) : (
           <button type="button" onClick={()=>setConfirmDelete(true)} title="Delete project"
-            className="icon-btn danger focus-ring" aria-label="Delete project">🗑️</button>
+            className="iconbtn danger focusable" aria-label="Delete project"><Icon.Trash/></button>
         )}
       </div>
 
@@ -778,12 +1094,13 @@ function ProjectCard({ project, onChange, onDelete }) {
               emptyHint={s.emptyHint}
               areas={project[s.key] || []}
               collapsed={!!collapsedSections[s.key]}
+              ownerSuggestions={ownerSuggestions}
               onToggleCollapsed={()=>setCollapsedSections(c=>({...c, [s.key]: !c[s.key]}))}
               onChange={(next)=>onChange({ ...project, [s.key]: next })}
             />
           ))}
 
-          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:12, marginTop:18}}>
+          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:12, marginTop:24, paddingTop:18, borderTop:"1px solid var(--border)"}}>
             <div>
               <div className="field-label">Next milestone</div>
               <input className="field-input" value={project.nextMilestone}
@@ -803,9 +1120,9 @@ function ProjectCard({ project, onChange, onDelete }) {
   );
 }
 
-/* ===========================================================
+/* ============================================================
    App
-   =========================================================== */
+   ============================================================ */
 function App() {
   const [ready, setReady]   = useState(false);
   const [projects, setProjects] = useState([]);
@@ -820,7 +1137,6 @@ function App() {
     setTimeout(()=>setToast(t=>({...t, show:false})), 2200);
   };
 
-  /* ---------- initial load ---------- */
   useEffect(() => {
     (async () => {
       try {
@@ -846,71 +1162,55 @@ function App() {
         if (local && local.length) {
           setProjects(local.map(normalizeProject));
           setSourceMsg("Offline — using local backup");
-          flash("⚠️ Couldn't reach n8n — working offline", false);
+          flash("Couldn't reach n8n — working offline", false);
         } else {
           const seed = [{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }];
           setProjects(seed);
           setSourceMsg("Offline — starting fresh");
-          flash("⚠️ Couldn't reach n8n — working offline", false);
+          flash("Couldn't reach n8n — working offline", false);
         }
       }
       setReady(true);
     })();
   }, []);
 
-  /* ---------- persistence ---------- */
   const persist = useCallback((next) => {
     saveLocal(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaving(true);
     saveTimer.current = setTimeout(async () => {
-      try {
-        await apiSave(next);
-        flash("✓ Saved");
-      } catch {
-        flash("✗ Sheet save failed (kept local copy)", false);
-      } finally {
-        setSaving(false);
-      }
+      try { await apiSave(next); flash("Saved"); }
+      catch { flash("Save failed (kept local copy)", false); }
+      finally { setSaving(false); }
     }, 900);
   }, []);
 
   const updateProject = (updated) => {
     const next = projects.map(p => p.id === updated.id ? updated : p);
-    setProjects(next);
-    persist(next);
+    setProjects(next); persist(next);
   };
-
   const deleteProject = (id) => {
     const next = projects.filter(p => p.id !== id).map((p,i)=>({...p, sortOrder: i+1}));
-    setProjects(next);
-    persist(next);
+    setProjects(next); persist(next);
   };
-
   const addProject = () => {
     const next = [...projects, { ...emptyProject(), sortOrder: projects.length + 1 }];
-    setProjects(next);
-    persist(next);
+    setProjects(next); persist(next);
     setTimeout(()=>window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
   };
 
-  /* ---------- drag drop dispatcher (cross-area moves) ---------- */
+  /* drag dispatcher */
   useEffect(() => {
     window.__pcDrop = (target) => {
       const drag = dragState[0];
       if (!drag) return;
       const next = JSON.parse(JSON.stringify(projects));
-
       const findProject = (pid) => next.find(p => p.id === pid);
       const removeItem = (pid, sectionKey, itemId) => {
-        const p = findProject(pid);
-        if (!p) return null;
+        const p = findProject(pid); if (!p) return null;
         for (const a of p[sectionKey] || []) {
           const idx = a.items.findIndex(i => i.id === itemId);
-          if (idx >= 0) {
-            const [it] = a.items.splice(idx, 1);
-            return it;
-          }
+          if (idx >= 0) return a.items.splice(idx, 1)[0];
         }
         return null;
       };
@@ -918,54 +1218,45 @@ function App() {
       if (drag.kind === 'project' && target.targetKind === 'project') {
         if (drag.projectId === target.projectId) return;
         const fromIdx = next.findIndex(p => p.id === drag.projectId);
-        let toIdx = next.findIndex(p => p.id === target.projectId);
-        if (fromIdx < 0 || toIdx < 0) return;
+        if (fromIdx < 0) return;
         const [m] = next.splice(fromIdx, 1);
-        toIdx = next.findIndex(p => p.id === target.projectId);
+        let toIdx = next.findIndex(p => p.id === target.projectId);
+        if (toIdx < 0) return;
         const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
         next.splice(insertAt, 0, m);
         next.forEach((p,i) => p.sortOrder = i+1);
       }
-
       else if (drag.kind === 'area' && target.targetKind === 'area') {
-        if (drag.projectId !== target.projectId) return; // areas stay within project
+        if (drag.projectId !== target.projectId || drag.sectionKey !== target.sectionKey) return;
         const p = findProject(drag.projectId);
-        // areas only reorder within same section
-        if (drag.sectionKey !== target.sectionKey) return;
         const list = p[drag.sectionKey];
         const fromIdx = list.findIndex(a => a.id === drag.areaId);
-        let toIdx = list.findIndex(a => a.id === target.areaId);
-        if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+        if (fromIdx < 0) return;
         const [m] = list.splice(fromIdx, 1);
-        toIdx = list.findIndex(a => a.id === target.areaId);
+        let toIdx = list.findIndex(a => a.id === target.areaId);
+        if (toIdx < 0) return;
         const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
         list.splice(insertAt, 0, m);
       }
-
       else if (drag.kind === 'item') {
         const moved = removeItem(drag.projectId, drag.sectionKey, drag.itemId);
         if (!moved) return;
-
         if (target.targetKind === 'item') {
           const p = findProject(target.projectId);
-          const list = p[target.sectionKey];
-          const area = list.find(a => a.id === target.areaId);
+          const area = p[target.sectionKey].find(a => a.id === target.areaId);
           if (!area) return;
           const idx = area.items.findIndex(i => i.id === target.itemId);
-          const insertAt = idx + (target.position === 'after' ? 1 : 0);
-          area.items.splice(insertAt, 0, moved);
+          area.items.splice(idx + (target.position === 'after' ? 1 : 0), 0, moved);
         } else if (target.targetKind === 'area-empty') {
           const p = findProject(target.projectId);
-          const list = p[target.sectionKey];
-          const area = list.find(a => a.id === target.areaId);
+          const area = p[target.sectionKey].find(a => a.id === target.areaId);
           if (!area) return;
           area.items.push(moved);
         } else if (target.targetKind === 'section-empty') {
           const p = findProject(target.projectId);
-          const list = p[target.sectionKey];
           const area = emptyArea("New area");
           area.items.push(moved);
-          list.push(area);
+          p[target.sectionKey].push(area);
         }
       }
 
@@ -975,7 +1266,6 @@ function App() {
     return () => { delete window.__pcDrop; };
   }, [projects, persist, dragState]);
 
-  /* ---------- import / export ---------- */
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(projects, null, 2)], { type: "application/json" });
     const url  = URL.createObjectURL(blob);
@@ -986,9 +1276,8 @@ function App() {
   };
 
   if (!ready) return (
-    <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", color:"#94A3B8", fontSize:14, gap:12}}>
-      <div style={{width:32, height:32, border:"3px solid #E2E8F0", borderTop:"3px solid #6366F1", borderRadius:"50%", animation:"spin 1s linear infinite"}}/>
-      Loading from Google Sheets…
+    <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-muted)", fontSize:13, gap:14}}>
+      <div className="spinner"/>Loading…
     </div>
   );
 
@@ -996,56 +1285,56 @@ function App() {
 
   return (
     <DragCtx.Provider value={dragState}>
-      <div style={{minHeight:"100vh", padding:"28px 20px 80px"}}>
-        <Toast toast={toast}/>
+      <div className="container">
+        <div className={`toast${toast.show?" show":""}${toast.ok?"":" err"}`} role="status" aria-live="polite">
+          {toast.msg}
+        </div>
 
-        <div style={{maxWidth:960, margin:"0 auto 24px"}}>
-          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:8}}>
-            <div>
-              <div style={{fontSize:24, fontWeight:800, letterSpacing:"-.02em"}}>Project Central</div>
-              <div style={{fontSize:12, color:"#94A3B8", marginTop:4}}>
-                {projects.length} project{projects.length===1?"":"s"} · {saving ? "saving…" : "all changes saved"}
-                {sourceMsg && <span style={{marginLeft:8, color:"#CBD5E1"}}>· {sourceMsg}</span>}
-              </div>
-            </div>
-            <div style={{display:"flex", gap:8, alignItems:"center"}}>
-              <button type="button" onClick={exportJson}
-                style={{fontSize:12, color:"#475569", padding:"6px 12px", borderRadius:8, border:"1px solid #E2E8F0", background:"#fff", fontWeight:600}}>
-                ⬇ Export JSON
-              </button>
-              <a href={SHEET_URL} target="_blank" rel="noreferrer"
-                style={{fontSize:12, color:"#6366F1", textDecoration:"none", padding:"6px 12px", borderRadius:8, border:"1px solid #E2E8F0", background:"#fff", fontWeight:600}}>
-                📊 Sheet
-              </a>
-              <button type="button" onClick={addProject}
-                style={{background:"#6366F1", color:"#fff", borderRadius:8, padding:"9px 16px", fontSize:13, fontWeight:700}}>+ Add Project</button>
+        <header style={{display:"flex", alignItems:"flex-end", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:18}}>
+          <div>
+            <h1 style={{margin:0, fontSize:22, fontWeight:800, letterSpacing:"-.02em"}}>Project Central</h1>
+            <div style={{fontSize:12, color:"var(--text-muted)", marginTop:4}}>
+              {projects.length} project{projects.length===1?"":"s"} · {saving ? "saving…" : "all changes saved"}
+              {sourceMsg && <span style={{marginLeft:6}}>· {sourceMsg}</span>}
             </div>
           </div>
+          <div style={{display:"flex", gap:8, alignItems:"center"}}>
+            <button type="button" onClick={exportJson} className="btn focusable">
+              <Icon.Download/> Export
+            </button>
+            <a href={SHEET_URL} target="_blank" rel="noreferrer" className="btn focusable" style={{textDecoration:"none"}}>
+              <Icon.Sheet/> Sheet
+            </a>
+            <button type="button" onClick={addProject} className="btn btn-primary focusable">
+              <Icon.Plus/> Add Project
+            </button>
+          </div>
+        </header>
 
-          <div style={{display:"flex", gap:8, flexWrap:"wrap", marginBottom:20}}>
+        {projects.length > 0 && (
+          <div style={{display:"flex", gap:6, flexWrap:"wrap", marginBottom:16}}>
             {PROJECT_STATUSES.map(s => {
               const m = PROJECT_STATUS_META[s];
               const n = statusCounts[s];
               if (!n) return null;
               return (
-                <div key={s} style={{display:"inline-flex", alignItems:"center", gap:6, background:m.bg, color:m.text, padding:"4px 10px", borderRadius:14, fontSize:11, fontWeight:700}}>
-                  <span style={{width:7, height:7, borderRadius:"50%", background:m.dot}}/>
-                  {s} · {n}
+                <div key={s} className="status-pill" style={{background:m.bg, color:m.text, fontSize:11}}>
+                  <span className="dot" style={{background:m.dot}}/>{s} · {n}
                 </div>
               );
             })}
           </div>
+        )}
 
-          {projects.map(p => (
-            <ProjectCard key={p.id} project={p} onChange={updateProject} onDelete={deleteProject}/>
-          ))}
+        {projects.map(p => (
+          <ProjectCard key={p.id} project={p} onChange={updateProject} onDelete={deleteProject}/>
+        ))}
 
-          {projects.length === 0 && (
-            <div className="card" style={{padding:40, textAlign:"center", color:"#94A3B8", fontSize:14}}>
-              No projects yet. Click <strong>+ Add Project</strong> to get started.
-            </div>
-          )}
-        </div>
+        {projects.length === 0 && (
+          <div className="card" style={{padding:48, textAlign:"center", color:"var(--text-muted)", fontSize:13.5}}>
+            No projects yet. Click <strong style={{color:"var(--text)"}}>+ Add Project</strong> to get started.
+          </div>
+        )}
       </div>
     </DragCtx.Provider>
   );
