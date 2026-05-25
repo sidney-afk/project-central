@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Project Central</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<meta name="theme-color" content="#FAFAF9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1A19" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,272 +14,587 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  :root {
-    --bg:           #F7F7F8;
-    --surface:      #FFFFFF;
-    --surface-2:    #FAFAFA;
-    --hover:        #F4F4F5;
-    --border:       #ECECEE;
-    --border-strong:#D4D4D8;
-    --text:         #18181B;
-    --text-soft:    #52525B;
-    --text-muted:   #A1A1AA;
-    --text-faint:   #D4D4D8;
-    --accent:       #4F46E5;
-    --accent-hover: #4338CA;
-    --accent-soft:  #EEF2FF;
-    --accent-text:  #4338CA;
-    --danger:       #DC2626;
-    --danger-soft:  #FEF2F2;
+:root {
+  --bg:           #FAFAF9;
+  --surface:      #FFFFFF;
+  --surface-elev: #FFFFFF;
+  --hover:        #F4F4F2;
+  --border:       #ECECEA;
+  --border-strong:#D9D9D6;
+  --text:         #1F1F1E;
+  --text-soft:    #555552;
+  --text-muted:   #8B8B86;
+  --text-faint:   #C9C9C5;
+  --accent:       #2563EB;
+  --accent-soft:  rgba(37,99,235,.10);
+  --accent-text:  #1E40AF;
+  --danger:       #DC2626;
+  --danger-soft:  rgba(220,38,38,.10);
 
-    --r-sm: 6px;
-    --r-md: 10px;
-    --r-lg: 14px;
-    --r-pill: 999px;
+  --st-done:     #10B981;
+  --st-progress: #3B82F6;
+  --st-waiting:  #F59E0B;
+  --st-pending:  #9CA3AF;
+  --st-to-plan:  #A78BFA;
+  --st-blocker:  #EF4444;
 
-    --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
-    --shadow-md: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
-    --shadow-pop: 0 8px 24px rgba(15,23,42,.12), 0 2px 4px rgba(15,23,42,.06);
+  --r-sm: 4px;
+  --r:    8px;
+  --r-lg: 12px;
+  --r-card: 14px;
+  --r-pill: 999px;
 
-    --ease: cubic-bezier(.2,.8,.2,1);
-  }
+  --shadow-1:   0 1px 2px rgba(0,0,0,.04);
+  --shadow-2:   0 4px 16px rgba(0,0,0,.06);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06);
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    font-feature-settings: "cv11","ss01","ss03";
-    -webkit-font-smoothing: antialiased;
-    line-height: 1.5;
-  }
-  button, input, select, textarea { font-family: inherit; color: inherit; }
-  button { cursor: pointer; background: none; border: none; padding: 0; }
-  textarea { resize: none; }
+  --ease:      cubic-bezier(.2,.7,.2,1);
+  --dur-fast:  120ms;
+  --dur:       180ms;
 
-  /* Card */
-  .card {
-    background: var(--surface);
-    border-radius: var(--r-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-  }
+  color-scheme: light;
+}
 
-  /* Focus ring */
-  .focusable:focus-visible,
-  button:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: var(--r-sm);
-  }
+[data-theme="dark"] {
+  --bg:           #1A1A19;
+  --surface:      #232322;
+  --surface-elev: #2A2A28;
+  --hover:        #2C2C2A;
+  --border:       #2F2F2D;
+  --border-strong:#3D3D3A;
+  --text:         #ECECEA;
+  --text-soft:    #B8B8B4;
+  --text-muted:   #7E7E79;
+  --text-faint:   #4D4D4A;
+  --accent:       #6AA0FF;
+  --accent-soft:  rgba(106,160,255,.14);
+  --accent-text:  #93B8FF;
+  --danger:       #F87171;
+  --danger-soft:  rgba(248,113,113,.14);
 
-  /* Drag */
-  .grip {
-    color: var(--text-faint);
-    cursor: grab;
-    user-select: none;
-    line-height: 1;
-    padding: 4px;
-    border-radius: 4px;
-    transition: color .12s, background .12s;
-  }
-  .grip:hover { color: var(--text-soft); background: var(--hover); }
-  .grip:active { cursor: grabbing; }
-  .drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
-  .drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
-  .drop-into   { background: var(--accent-soft) !important; outline: 1.5px dashed var(--accent); outline-offset: -2px; border-radius: var(--r-md); }
-  .ghost { opacity: .35; }
+  --shadow-1:   0 1px 2px rgba(0,0,0,.30);
+  --shadow-2:   0 4px 18px rgba(0,0,0,.36);
+  --shadow-pop: 0 16px 40px rgba(0,0,0,.48), 0 2px 8px rgba(0,0,0,.32);
 
-  /* Icon button */
-  .iconbtn {
-    width: 26px; height: 26px;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: var(--text-muted);
-    border-radius: var(--r-sm);
-    transition: background .12s, color .12s;
-  }
-  .iconbtn:hover { background: var(--hover); color: var(--text); }
-  .iconbtn.danger:hover { background: var(--danger-soft); color: var(--danger); }
-  .iconbtn svg { width: 14px; height: 14px; }
+  color-scheme: dark;
+}
 
-  /* Header chip / button */
-  .chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px;
-    border-radius: var(--r-pill);
-    font-size: 11.5px; font-weight: 600;
-    background: var(--hover);
-    color: var(--text-soft);
-    transition: background .12s, color .12s;
-    white-space: nowrap;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .chip:hover { background: var(--border); }
-  .chip.ghost-chip {
-    background: transparent;
-    border: 1px dashed var(--border-strong);
-    color: var(--text-muted);
-    opacity: 0;
-    transition: opacity .12s;
-  }
-  .row:hover .chip.ghost-chip { opacity: 1; }
-  .chip.ghost-chip:hover { color: var(--text-soft); border-color: var(--text-muted); }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "cv11","ss01","ss03";
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+button, input, select, textarea { font-family: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+textarea { resize: none; }
 
-  /* Status pill — variants set inline */
-  .status-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 10px 3px 8px;
-    border-radius: var(--r-pill);
-    font-size: 11px; font-weight: 600;
-    transition: filter .12s, transform .12s;
-    line-height: 1.4;
-    white-space: nowrap;
-  }
-  .status-pill:hover { filter: brightness(.97); }
-  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+/* Focus */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
 
-  /* Buttons */
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 12px;
-    border-radius: var(--r-md);
-    font-size: 12.5px; font-weight: 600;
-    background: var(--surface);
-    color: var(--text-soft);
-    border: 1px solid var(--border);
-    transition: background .12s, color .12s, border-color .12s;
-  }
-  .btn:hover { background: var(--hover); color: var(--text); }
-  .btn-primary {
-    background: var(--text);
-    color: var(--surface);
-    border-color: var(--text);
-  }
-  .btn-primary:hover { background: #27272A; color: var(--surface); }
-  .btn-ghost {
-    background: transparent;
-    border: none;
-    color: var(--text-soft);
-    padding: 5px 10px;
-    font-weight: 600;
-    border-radius: var(--r-sm);
-  }
-  .btn-ghost:hover { background: var(--hover); color: var(--text); }
+/* Layout */
+.page { max-width: 1024px; margin: 0 auto; padding: 32px 24px 96px; }
 
-  /* Inline input */
-  .inline-input {
-    width: 100%;
-    border: 1px solid transparent;
-    background: transparent;
-    padding: 4px 6px;
-    border-radius: var(--r-sm);
-    font-size: 13px;
-    color: var(--text);
-    outline: none;
-    font-family: inherit;
-    transition: background .12s, border-color .12s;
-  }
-  .inline-input:hover { background: var(--surface-2); }
-  .inline-input:focus { background: var(--surface); border-color: var(--border-strong); }
-  textarea.inline-input { resize: none; overflow: hidden; line-height: 1.5; }
+/* Top bar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 24px;
+}
+.topbar-title { display: flex; align-items: baseline; gap: 12px; }
+.topbar-title h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.topbar-sub { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.sync-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--st-pending);
+  transition: background var(--dur) var(--ease);
+}
+.sync-dot.saving { background: var(--st-waiting); animation: pulse 1.2s ease-in-out infinite; }
+.sync-dot.saved  { background: var(--st-done); }
+.sync-dot.error  { background: var(--st-blocker); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
-  /* Section label */
-  .section-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .field-label { display: block; font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
-  .field-input {
-    width: 100%; padding: 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    font-size: 13px; color: var(--text); outline: none;
-    background: var(--surface);
-    transition: border-color .12s;
-  }
-  .field-input:focus { border-color: var(--accent); }
+.topbar-actions { display: flex; align-items: center; gap: 6px; }
 
-  /* Row */
-  .row {
-    display: grid;
-    grid-template-columns: 22px 110px 1fr auto 28px;
-    column-gap: 10px;
-    align-items: start;
-    padding: 6px 6px;
-    border-radius: var(--r-md);
-    position: relative;
-    transition: background .12s;
-  }
-  .row:hover { background: var(--surface-2); }
-  .row .grip, .row .row-actions { opacity: 0; transition: opacity .12s; }
-  .row:hover .grip, .row:hover .row-actions { opacity: 1; }
-  .row.is-dragging { background: var(--surface-2); }
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--r);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.btn:hover { background: var(--hover); color: var(--text); }
+.btn-outline { border-color: var(--border); background: var(--surface); }
+.btn-outline:hover { border-color: var(--border-strong); background: var(--hover); }
+.btn-primary {
+  background: var(--text); color: var(--surface);
+  border-color: var(--text);
+}
+[data-theme="dark"] .btn-primary { background: var(--text); color: #1A1A19; border-color: var(--text); }
+.btn-primary:hover { filter: brightness(1.1); background: var(--text); color: var(--surface); }
+[data-theme="dark"] .btn-primary:hover { filter: brightness(.95); }
+.btn-ghost { padding: 6px 10px; border-radius: var(--r-sm); }
 
-  /* Area body */
-  .area-body { padding-left: 12px; border-left: 2px solid var(--border); margin-left: 6px; }
+.iconbtn {
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.iconbtn:hover { background: var(--hover); color: var(--text); }
+.iconbtn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.iconbtn svg { width: 14px; height: 14px; display: block; }
 
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 24px; right: 24px;
-    padding: 10px 16px;
-    border-radius: var(--r-md);
-    font-size: 12.5px; font-weight: 600;
-    background: var(--text); color: var(--surface);
-    box-shadow: var(--shadow-pop);
-    opacity: 0; transform: translateY(8px);
-    transition: opacity .2s, transform .2s;
-    pointer-events: none;
-    z-index: 9999;
-  }
-  .toast.show { opacity: 1; transform: none; }
-  .toast.err { background: var(--danger); }
+/* Project status badge */
+.project-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px 3px 9px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px; font-weight: 600;
+  transition: filter var(--dur-fast) var(--ease);
+  white-space: nowrap;
+}
+.project-status:hover { filter: brightness(.96); }
+[data-theme="dark"] .project-status:hover { filter: brightness(1.15); }
+.project-status .dot { width: 6px; height: 6px; border-radius: 50%; }
 
-  /* Popover */
-  .popover {
-    position: absolute;
-    z-index: 100;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    box-shadow: var(--shadow-pop);
-    padding: 4px;
-    min-width: 180px;
-    animation: pop .14s var(--ease);
-  }
-  @keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
-  .popover-item {
-    display: flex; align-items: center; gap: 8px;
-    width: 100%;
-    padding: 7px 9px;
-    border-radius: var(--r-sm);
-    font-size: 12.5px;
-    color: var(--text);
-    text-align: left;
-    font-weight: 500;
-    transition: background .1s;
-  }
-  .popover-item:hover { background: var(--hover); }
-  .popover-item.active { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-1);
+  padding: 28px 32px;
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.card:hover { box-shadow: var(--shadow-2); }
 
-  /* Chevron rotation */
-  .chev { transition: transform .15s var(--ease); }
-  .chev.open { transform: rotate(90deg); }
+/* Project header */
+.project-header { display: flex; align-items: center; gap: 12px; min-height: 36px; }
+.project-grip { opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+.card:hover .project-grip { opacity: 1; }
+.project-name {
+  flex: 1; min-width: 0;
+  font-size: 22px; font-weight: 700; letter-spacing: -.01em; color: var(--text);
+  background: transparent; border: 1px solid transparent;
+  padding: 4px 8px; margin-left: -8px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.project-name:hover { background: var(--hover); }
+.project-name:focus { background: var(--surface-elev); border-color: var(--border-strong); outline: none; }
+.project-meta-count { font-size: 12px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
 
-  /* Layout */
-  .container { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+/* Meta row */
+.meta-row {
+  display: grid; grid-template-columns: 2fr 1fr;
+  gap: 16px; margin-top: 16px;
+}
+.meta-field { display: flex; flex-direction: column; gap: 4px; }
+.meta-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+  color: var(--text-muted); text-transform: uppercase;
+}
+.meta-input {
+  background: transparent; border: 1px solid transparent;
+  padding: 6px 10px; margin-left: -10px;
+  border-radius: var(--r);
+  font-size: 13px; color: var(--text);
+  font-family: inherit;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.meta-input::placeholder { color: var(--text-faint); }
+.meta-input:hover { background: var(--hover); }
+.meta-input:focus { background: var(--surface-elev); border-color: var(--border-strong); outline: none; }
 
-  /* Loader */
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { width: 28px; height: 28px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
+/* Filter bar */
+.filterbar {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px; margin-top: 24px; padding-bottom: 4px;
+}
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--text-soft);
+  background: transparent;
+  border-radius: var(--r-pill);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  white-space: nowrap;
+}
+.filter-chip:hover { background: var(--hover); color: var(--text); }
+.filter-chip.active {
+  background: var(--text); color: var(--surface);
+}
+[data-theme="dark"] .filter-chip.active { color: #1A1A19; }
+.filter-chip .count {
+  font-size: 10.5px; font-weight: 700;
+  opacity: .65;
+  font-variant-numeric: tabular-nums;
+}
+.filter-chip.active .count { opacity: .8; }
+.filterbar-spacer { flex: 1; }
+.filterbar-aux { color: var(--text-muted); font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: var(--r-sm); }
+.filterbar-aux:hover { background: var(--hover); color: var(--text); }
+
+/* Areas */
+.areas { margin-top: 8px; }
+.area { margin-top: 24px; }
+.area-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.area-caret {
+  width: 18px; height: 18px;
+  color: var(--text-muted);
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.area-caret:hover { background: var(--hover); color: var(--text); }
+.area-caret svg { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease); }
+.area-caret.open svg { transform: rotate(90deg); }
+.area-name {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-soft);
+  background: transparent; border: 1px solid transparent;
+  padding: 4px 8px; margin-left: -8px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  transition: background var(--dur-fast) var(--ease);
+}
+.area-name:hover { background: var(--hover); }
+.area-name:focus { background: var(--surface-elev); border-color: var(--border-strong); color: var(--text); outline: none; }
+.area-count {
+  font-size: 11px; color: var(--text-muted); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.area-grip {
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease);
+}
+.area:hover > .area-header > .area-grip { opacity: 1; }
+.area-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+.area:hover > .area-header > .area-actions { opacity: 1; }
+.area-body { margin-top: 4px; }
+.area-empty {
+  font-size: 12.5px; color: var(--text-muted); padding: 8px 4px 4px;
+  font-style: italic;
+}
+.area-empty button { color: var(--text-soft); font-weight: 600; }
+.area-empty button:hover { color: var(--accent); }
+
+/* Item row */
+.row {
+  display: grid;
+  grid-template-columns: 16px 18px 1fr auto 22px;
+  gap: 10px; align-items: start;
+  padding: 7px 8px;
+  border-radius: var(--r);
+  position: relative;
+  transition: background var(--dur-fast) var(--ease);
+}
+.row:hover { background: var(--hover); }
+.row.dragging { opacity: .35; }
+.row-grip {
+  margin-top: 4px;
+  opacity: 0; transition: opacity var(--dur-fast) var(--ease);
+  color: var(--text-faint);
+  cursor: grab; user-select: none;
+}
+.row:hover .row-grip { opacity: 1; }
+.row-grip:hover { color: var(--text-muted); }
+.row-grip:active { cursor: grabbing; }
+.row-grip svg { width: 14px; height: 14px; display: block; }
+
+.row-status { padding-top: 4px; line-height: 1; }
+.row-status-btn {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease);
+}
+.row-status-btn:hover { background: var(--hover); }
+.row:hover .row-status-btn:hover { background: var(--surface); }
+
+.row-text {
+  font-size: 14px; line-height: 1.55; color: var(--text);
+  background: transparent; border: none;
+  padding: 2px 0;
+  outline: none; font-family: inherit; width: 100%;
+  overflow: hidden;
+}
+.row-text::placeholder { color: var(--text-faint); }
+.row-text:focus { background: transparent; }
+
+.row-owner { justify-self: end; align-self: start; padding-top: 2px; }
+.row-actions { display: flex; align-items: center; justify-content: center; padding-top: 2px; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+.row:hover .row-actions { opacity: 1; }
+
+/* Status icon */
+.status-icon { width: 14px; height: 14px; display: block; }
+
+/* Owner avatar */
+.avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+  color: #fff; flex-shrink: 0;
+  transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.avatar:hover { transform: scale(1.08); filter: brightness(1.05); }
+.avatar.empty {
+  background: transparent;
+  border: 1px dashed var(--text-faint);
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.row[data-empty-owner="true"]:hover .avatar.empty { opacity: 1; }
+.avatar.empty:hover { border-color: var(--text-muted); color: var(--text-muted); }
+.avatar.empty svg { width: 10px; height: 10px; }
+
+/* Popover */
+.popover {
+  position: fixed;
+  background: var(--surface-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 4px;
+  min-width: 180px;
+  z-index: 200;
+  animation: popIn var(--dur-fast) var(--ease);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+.popover-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px; font-weight: 500;
+  color: var(--text); text-align: left;
+  transition: background var(--dur-fast) var(--ease);
+}
+.popover-item:hover { background: var(--hover); }
+.popover-item .label { flex: 1; }
+.popover-item .check { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+.popover-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px; font-family: inherit;
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.popover-input:focus { border-color: var(--accent); }
+.popover-foot { display: flex; gap: 6px; justify-content: flex-end; padding: 4px 0 0; }
+.popover-suggestions { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn var(--dur-fast) var(--ease);
+}
+[data-theme="dark"] .modal-backdrop { background: rgba(0,0,0,.6); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--surface-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-pop);
+  padding: 24px;
+  width: 100%; max-width: 420px;
+  animation: popIn var(--dur) var(--ease);
+}
+.modal h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.modal p { margin: 0 0 20px; font-size: 13.5px; color: var(--text-soft); line-height: 1.55; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn-danger {
+  background: var(--danger); color: #fff;
+  padding: 8px 14px; border-radius: var(--r);
+  font-size: 12.5px; font-weight: 600;
+  transition: filter var(--dur-fast) var(--ease);
+}
+.btn-danger:hover { filter: brightness(.92); }
+
+/* Toast */
+.toast-host {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  z-index: 250;
+  pointer-events: none;
+}
+.toast {
+  background: var(--text); color: var(--surface);
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--r-lg);
+  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: var(--shadow-pop);
+  pointer-events: auto;
+  animation: toastIn var(--dur) var(--ease);
+  min-width: 280px;
+}
+[data-theme="dark"] .toast { color: #1A1A19; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.toast.err { background: var(--danger); color: #fff; }
+.toast-msg { flex: 1; }
+.toast-btn {
+  background: rgba(255,255,255,.12); color: inherit;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px; font-weight: 700;
+  transition: background var(--dur-fast) var(--ease);
+}
+.toast-btn:hover { background: rgba(255,255,255,.20); }
+[data-theme="dark"] .toast-btn { background: rgba(0,0,0,.10); }
+[data-theme="dark"] .toast-btn:hover { background: rgba(0,0,0,.18); }
+
+/* Command palette */
+.palette-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.40);
+  z-index: 400;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12vh;
+  animation: fadeIn var(--dur-fast) var(--ease);
+}
+[data-theme="dark"] .palette-backdrop { background: rgba(0,0,0,.6); }
+.palette {
+  background: var(--surface-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-pop);
+  width: 100%; max-width: 540px;
+  overflow: hidden;
+  animation: popIn var(--dur) var(--ease);
+}
+.palette-input {
+  width: 100%;
+  padding: 16px 18px;
+  border: none; border-bottom: 1px solid var(--border);
+  background: transparent;
+  font-size: 15px; color: var(--text);
+  font-family: inherit; outline: none;
+}
+.palette-input::placeholder { color: var(--text-muted); }
+.palette-list { max-height: 360px; overflow-y: auto; padding: 6px; }
+.palette-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.palette-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  text-align: left;
+  font-size: 13.5px; color: var(--text);
+  transition: background var(--dur-fast) var(--ease);
+}
+.palette-item.active { background: var(--accent-soft); color: var(--accent-text); }
+.palette-item-kind {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 2px 6px; border-radius: var(--r-sm);
+  background: var(--hover);
+}
+.palette-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-item-meta { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.palette-hint {
+  border-top: 1px solid var(--border);
+  padding: 8px 14px;
+  font-size: 11px; color: var(--text-muted);
+  display: flex; gap: 14px; flex-wrap: wrap;
+}
+.palette-hint kbd {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  padding: 1px 5px;
+  background: var(--hover);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+/* Drag indicators */
+.drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
+.drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
+.drop-into   { background: var(--accent-soft) !important; outline: 1.5px dashed var(--accent); outline-offset: -2px; }
+
+/* Project list spacing */
+.project-list { display: flex; flex-direction: column; gap: 20px; }
+
+/* Highlight after palette jump */
+.highlight-flash { animation: flash 1.5s var(--ease); }
+@keyframes flash {
+  0%   { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+
+/* Mobile gate */
+.mobile-gate {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px; text-align: center;
+}
+.mobile-gate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-1);
+  padding: 32px 28px;
+  max-width: 360px;
+}
+.mobile-gate h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.mobile-gate p { margin: 0; font-size: 13.5px; color: var(--text-soft); line-height: 1.55; }
+.mobile-gate-icon { font-size: 28px; margin-bottom: 12px; }
+
+/* Loading */
+.loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; color: var(--text-muted); font-size: 13px; gap: 14px;
+}
+.spinner {
+  width: 26px; height: 26px;
+  border: 2.5px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty-state {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-card);
+  padding: 64px 32px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-state h2 { margin: 0 0 8px; font-size: 15px; color: var(--text); font-weight: 700; }
+.empty-state p { margin: 0 0 18px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -289,98 +606,193 @@
    ============================================================ */
 const WEBHOOK_URL = "https://synchrosocial.app.n8n.cloud/webhook/project-central";
 const SHEET_URL   = "https://docs.google.com/spreadsheets/d/1ZAGZBMoT1M3i9DndmhNwHurx6iW3i9ESXiMmrPvCB38/edit";
-const STORAGE_KEY = "project-central:v3";
-const LEGACY_STORAGE_KEY = "project-central:v2";
+
+const KEY_PROJECTS  = "pc.projects.v1";
+const KEY_LEGACY_V3 = "project-central:v3";
+const KEY_LEGACY_V2 = "project-central:v2";
+const KEY_THEME     = "pc.theme.v1";
+const KEY_COLLAPSED = "pc.collapsed.v1";
+const KEY_FILTER    = "pc.filter.v1";
 
 const PROJECT_STATUSES = ["On track","At risk","Blocked","Shipped"];
 const PROJECT_STATUS_META = {
-  "On track": { bg:"#ECFDF5", text:"#047857", dot:"#10B981" },
-  "At risk":  { bg:"#FFFBEB", text:"#B45309", dot:"#F59E0B" },
-  "Blocked":  { bg:"#FEF2F2", text:"#B91C1C", dot:"#EF4444" },
-  "Shipped":  { bg:"#F5F3FF", text:"#6D28D9", dot:"#8B5CF6" },
+  "On track": { fg:"var(--st-done)",    bg:"rgba(16,185,129,.10)" },
+  "At risk":  { fg:"var(--st-waiting)", bg:"rgba(245,158,11,.10)" },
+  "Blocked":  { fg:"var(--st-blocker)", bg:"rgba(239,68,68,.10)"  },
+  "Shipped":  { fg:"#8B5CF6",           bg:"rgba(139,92,246,.10)" },
 };
 
-const ITEM_STATUSES = ["done","in_progress","waiting","pending","to_plan","blocker"];
-const ITEM_STATUS_META = {
-  done:        { label: "Done",        bg:"#ECFDF5", text:"#047857", dot:"#10B981" },
-  in_progress: { label: "In progress", bg:"#EFF6FF", text:"#1D4ED8", dot:"#3B82F6" },
-  waiting:     { label: "Waiting",     bg:"#FFFBEB", text:"#B45309", dot:"#F59E0B" },
-  pending:     { label: "Pending",     bg:"#F4F4F5", text:"#52525B", dot:"#A1A1AA" },
-  to_plan:     { label: "To plan",     bg:"#FAFAF9", text:"#78716C", dot:"#D4D4D8" },
-  blocker:     { label: "Blocker",     bg:"#FEF2F2", text:"#B91C1C", dot:"#EF4444" },
+const ITEM_STATUSES = ["pending","in_progress","done","waiting","to_plan","blocker"];
+const ITEM_STATUS_LABEL = {
+  pending:     "No status",
+  in_progress: "In progress",
+  done:        "Done",
+  waiting:     "Waiting",
+  to_plan:     "To plan",
+  blocker:     "Blocker",
 };
-
-const SECTIONS = [
-  { key: "whatsBeenDone", label: "What's been done", emptyHint: "Nothing logged yet. Add an area to start tracking what's shipped." },
-  { key: "workingOnNow",  label: "Working on now",   emptyHint: "Nothing in flight. Add an area for work happening now." },
-  { key: "blockers",      label: "Blockers / need from you", emptyHint: "No blockers. Add an area for things waiting on someone else." },
-];
+const ITEM_STATUS_COLOR = {
+  pending:     "var(--st-pending)",
+  in_progress: "var(--st-progress)",
+  done:        "var(--st-done)",
+  waiting:     "var(--st-waiting)",
+  to_plan:     "var(--st-to-plan)",
+  blocker:     "var(--st-blocker)",
+};
 
 /* ============================================================
-   ICONS (inline SVG)
+   ICONS — minimal inline SVGs
    ============================================================ */
 const Icon = {
-  Chevron: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  Chevron: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  Plus: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  Plus: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   ),
-  X: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  X: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   ),
-  Trash: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  Trash: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M3 4.5h10M6.5 7.5v4M9.5 7.5v4M4.5 4.5l.5 8a1 1 0 001 1h4a1 1 0 001-1l.5-8M6 4.5V3a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  Check: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
-      <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+  Check: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  Grip: (props) => (
-    <svg viewBox="0 0 16 16" fill="currentColor" {...props}>
+  Grip: (p) => (
+    <svg viewBox="0 0 16 16" fill="currentColor" {...p}>
       <circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/>
       <circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/>
       <circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/>
     </svg>
   ),
-  Sheet: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  Sun: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  ),
+  Moon: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M13 9.5A5.5 5.5 0 016.5 3a5.5 5.5 0 106.5 6.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+    </svg>
+  ),
+  Monitor: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <rect x="2" y="3" width="12" height="9" rx="1.2" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M6 14h4M8 12v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  ),
+  Kebab: (p) => (
+    <svg viewBox="0 0 16 16" fill="currentColor" {...p}>
+      <circle cx="8" cy="3.5" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/>
+    </svg>
+  ),
+  Sheet: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M2.5 6.5h11M2.5 10.5h11M6 2.5v11M10 2.5v11" stroke="currentColor" strokeWidth="1.3"/>
     </svg>
   ),
-  Download: (props) => (
-    <svg viewBox="0 0 16 16" fill="none" {...props}>
+  Download: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M8 2.5v8m0 0L5 7.5m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
 };
 
+/* Status SVG glyphs — drawn with stroke/fill currentColor */
+function StatusGlyph({ status, className }) {
+  const cls = "status-icon " + (className || "");
+  const color = ITEM_STATUS_COLOR[status] || ITEM_STATUS_COLOR.pending;
+  const stroke = { stroke: "currentColor", fill: "none", strokeWidth: 1.5 };
+  switch (status) {
+    case "done":
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <circle cx="7" cy="7" r="6" fill="currentColor"/>
+          <path d="M4 7.5 L6.2 9.6 L10 5.5" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+    case "in_progress":
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M 7 1.5 A 5.5 5.5 0 0 1 7 12.5 Z" fill="currentColor"/>
+        </svg>
+      );
+    case "waiting":
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="5" y="4.5" width="1.4" height="5" rx=".5" fill="currentColor"/>
+          <rect x="7.6" y="4.5" width="1.4" height="5" rx=".5" fill="currentColor"/>
+        </svg>
+      );
+    case "to_plan":
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2"/>
+        </svg>
+      );
+    case "blocker":
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <path d="M 7 1.5 L 13 12 L 1 12 Z" fill="currentColor"/>
+          <path d="M 7 5.2 V 8.4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/>
+          <circle cx="7" cy="10.4" r=".8" fill="#fff"/>
+        </svg>
+      );
+    case "pending":
+    default:
+      return (
+        <svg className={cls} viewBox="0 0 14 14" style={{color}}>
+          <circle cx="7" cy="7" r="5.5" {...stroke}/>
+        </svg>
+      );
+  }
+}
+
 /* ============================================================
    UTIL
    ============================================================ */
 const gid = (prefix="id") => prefix + "-" + Math.random().toString(36).slice(2, 10);
-function emptyArea(name="New area") { return { id: gid("a"), name, collapsed: false, items: [] }; }
+function emptyArea(name="New area") { return { id: gid("a"), name, items: [] }; }
 function emptyItem(status="pending") { return { id: gid("i"), text: "", status, owner: "" }; }
 function emptyProject() {
   return {
     id: gid("p"), name: "New project", status: "On track",
-    nextMilestone: "", eta: "", sortOrder: 0,
-    whatsBeenDone: [], workingOnNow: [], blockers: [],
+    nextMilestone: "", eta: "", sortOrder: 0, areas: [],
   };
 }
 
+function hashString(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h);
+}
+function initialsOf(name) {
+  const parts = String(name||"").trim().split(/\s+/);
+  if (!parts[0]) return "";
+  return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+}
+function avatarColor(name, dark) {
+  const hue = hashString(name) % 360;
+  return `hsl(${hue}, 55%, ${dark ? 50 : 42}%)`;
+}
+
 /* ============================================================
-   Legacy text → structured  (and "looks like owner" heuristic)
+   Legacy text → structured parser  (PRESERVED)
    ============================================================ */
 const ITEM_STATUS_FROM_MARKER = {
   "✓": "done", "○": "in_progress", "⏸": "waiting",
@@ -390,22 +802,17 @@ const TAG_TO_STATUS = {
   "DONE": "done", "WAITING": "waiting", "PENDING": "pending",
   "IN PROGRESS": "in_progress", "TO PLAN": "to_plan", "BLOCKER": "blocker",
 };
-
 function looksLikeOwner(s) {
   if (!s) return false;
   const t = s.trim();
   if (!t || t.length > 30) return false;
   if (/[.!?]$/.test(t)) return false;
   if (/\.\s/.test(t)) return false;
-  // disallow obvious sentence words
-  if (/^(via|for|the|and|or|on|in|at|with|via|every|each)\b/i.test(t)) return false;
+  if (/^(via|for|the|and|or|on|in|at|with|every|each)\b/i.test(t)) return false;
   return true;
 }
-
 function stripMdEscapes(s) { return s.replace(/\\([\[\]\\_*])/g, "$1"); }
-
 function splitOwner(text) {
-  // Walk from rightmost " — " backward; the first chunk that "looks like an owner" wins.
   const parts = text.split(/\s+—\s+/);
   if (parts.length < 2) return { text, owner: "" };
   for (let i = parts.length - 1; i >= 1; i--) {
@@ -416,7 +823,6 @@ function splitOwner(text) {
   }
   return { text, owner: "" };
 }
-
 function parseSectionText(text) {
   if (!text || typeof text !== "string") return [];
   const lines = text
@@ -424,14 +830,11 @@ function parseSectionText(text) {
     .map(l => stripMdEscapes(l).trim())
     .filter(Boolean);
   if (!lines.length) return [];
-
   const areas = [];
   let current = null;
-
   for (const raw of lines) {
     let line = raw;
     let status = null;
-
     const first = line.charAt(0);
     if (ITEM_STATUS_FROM_MARKER[first]) {
       status = ITEM_STATUS_FROM_MARKER[first];
@@ -442,7 +845,6 @@ function parseSectionText(text) {
       status = TAG_TO_STATUS[tagMatch[1].toUpperCase()] || status;
       line = line.slice(tagMatch[0].length).trim();
     }
-
     if (status) {
       const split = splitOwner(line);
       if (!current) { current = emptyArea("Items"); areas.push(current); }
@@ -452,10 +854,34 @@ function parseSectionText(text) {
       areas.push(current);
     }
   }
-  // Drop empty section-divider areas (kept only if last)
   return areas.filter((a, i) => a.items.length > 0 || i === areas.length - 1);
 }
 
+/* ============================================================
+   Normalize / repair / migrate  (preserved + extended)
+   ============================================================ */
+function repairArea(a) { return { ...a, items: a.items.map(repairItem) }; }
+function repairItem(it) {
+  if (it.owner && !looksLikeOwner(it.owner)) {
+    return { ...it, text: (it.text + (it.text ? " — " : "") + it.owner).trim(), owner: "" };
+  }
+  return it;
+}
+function normalizeArea(a, i=0) {
+  return {
+    id: String(a?.id || gid("a")),
+    name: String(a?.name ?? `Area ${i+1}`),
+    items: Array.isArray(a?.items) ? a.items.map(normalizeItem) : [],
+  };
+}
+function normalizeItem(it) {
+  return {
+    id: String(it?.id || gid("i")),
+    text: String(it?.text ?? ""),
+    status: ITEM_STATUSES.includes(it?.status) ? it.status : "pending",
+    owner: String(it?.owner ?? ""),
+  };
+}
 function migrateSection(value) {
   if (Array.isArray(value)) return value.map(normalizeArea).map(repairArea);
   if (typeof value === "string") {
@@ -472,34 +898,28 @@ function migrateSection(value) {
   return [];
 }
 
-function repairArea(a) {
-  return { ...a, items: a.items.map(repairItem) };
-}
-function repairItem(it) {
-  // If a previously-saved owner doesn't actually look like an owner (legacy bug),
-  // fold it back into the text.
-  if (it.owner && !looksLikeOwner(it.owner)) {
-    return { ...it, text: (it.text + (it.text ? " — " : "") + it.owner).trim(), owner: "" };
+/* NEW: collapse the three legacy section fields into one areas list */
+function mergeLegacySections(p) {
+  if (Array.isArray(p?.areas) && p.areas.length > 0) {
+    return p.areas.map(normalizeArea).map(repairArea);
   }
-  return it;
+  const a1 = migrateSection(p?.whatsBeenDone);
+  const a2 = migrateSection(p?.workingOnNow);
+  const a3 = migrateSection(p?.blockers);
+  const merged = [];
+  const indexByName = new Map();
+  for (const a of [...a1, ...a2, ...a3]) {
+    const key = a.name.trim().toLowerCase();
+    if (key && indexByName.has(key)) {
+      merged[indexByName.get(key)].items.push(...a.items);
+    } else {
+      if (key) indexByName.set(key, merged.length);
+      merged.push(a);
+    }
+  }
+  return merged.filter(a => a.name.trim() || a.items.length > 0);
 }
 
-function normalizeArea(a, i=0) {
-  return {
-    id: String(a?.id || gid("a")),
-    name: String(a?.name ?? `Area ${i+1}`),
-    collapsed: Boolean(a?.collapsed),
-    items: Array.isArray(a?.items) ? a.items.map(normalizeItem) : [],
-  };
-}
-function normalizeItem(it) {
-  return {
-    id: String(it?.id || gid("i")),
-    text: String(it?.text ?? ""),
-    status: ITEM_STATUSES.includes(it?.status) ? it.status : "pending",
-    owner: String(it?.owner ?? ""),
-  };
-}
 function normalizeProject(p, i=0) {
   return {
     id: String(p?.id || gid("p")),
@@ -508,22 +928,20 @@ function normalizeProject(p, i=0) {
     nextMilestone: String(p?.nextMilestone ?? ""),
     eta: String(p?.eta ?? ""),
     sortOrder: Number(p?.sortOrder) || i + 1,
-    whatsBeenDone: migrateSection(p?.whatsBeenDone),
-    workingOnNow:  migrateSection(p?.workingOnNow),
-    blockers:      migrateSection(p?.blockers),
+    areas: mergeLegacySections(p),
   };
 }
 
 /* ============================================================
-   API
+   API + localStorage  (preserved IO, updated serializer)
    ============================================================ */
 function serializeForSheet(projects) {
   return projects.map(p => ({
     id: p.id, name: p.name, status: p.status,
     nextMilestone: p.nextMilestone, eta: p.eta, sortOrder: p.sortOrder,
-    whatsBeenDone: JSON.stringify(p.whatsBeenDone || []),
-    workingOnNow:  JSON.stringify(p.workingOnNow  || []),
-    blockers:      JSON.stringify(p.blockers      || []),
+    whatsBeenDone: JSON.stringify(p.areas || []),
+    workingOnNow:  "",
+    blockers:      "",
   }));
 }
 async function apiLoad() {
@@ -542,27 +960,58 @@ async function apiSave(projects) {
 }
 function loadLocal() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    const raw = localStorage.getItem(KEY_PROJECTS)
+            ?? localStorage.getItem(KEY_LEGACY_V3)
+            ?? localStorage.getItem(KEY_LEGACY_V2);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 function saveLocal(projects) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); } catch {}
+  try { localStorage.setItem(KEY_PROJECTS, JSON.stringify(projects)); } catch {}
+}
+
+/* localStorage helpers for ui state */
+function readJSON(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch { return fallback; }
+}
+function writeJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
 /* ============================================================
-   DRAG controller
+   THEME
    ============================================================ */
-const DragCtx = React.createContext(null);
-function useDragController() {
-  const [drag, setDrag] = React.useState(null);
-  return [drag, setDrag];
+function applyTheme(mode) {
+  const resolved = mode === "system"
+    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : mode;
+  document.documentElement.setAttribute("data-theme", resolved);
+}
+function useTheme() {
+  const [mode, setMode] = React.useState(() => {
+    try { return localStorage.getItem(KEY_THEME) || "system"; } catch { return "system"; }
+  });
+  React.useEffect(() => {
+    applyTheme(mode);
+    try { localStorage.setItem(KEY_THEME, mode); } catch {}
+    if (mode !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => applyTheme("system");
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [mode]);
+  const resolved = mode === "system"
+    ? (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : mode;
+  return [mode, setMode, resolved];
 }
 
 /* ============================================================
    Hooks
    ============================================================ */
 const { useState, useEffect, useCallback, useRef, useMemo, useContext, useLayoutEffect } = React;
+const DragCtx = React.createContext(null);
 
 function useOutsideClick(ref, onOutside) {
   useEffect(() => {
@@ -580,200 +1029,483 @@ function useAutoResize(ref, value) {
   }, [ref, value]);
 }
 
-/* ============================================================
-   Inline editors
-   ============================================================ */
-function InlineInput({ value, onChange, placeholder, ariaLabel, style, onEnter }) {
-  return (
-    <input className="inline-input" type="text" value={value}
-      onChange={e=>onChange(e.target.value)}
-      placeholder={placeholder} aria-label={ariaLabel} style={style}
-      onKeyDown={e=>{ if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(); } }}/>
-  );
+function useViewportWidth() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1280);
+  useEffect(() => {
+    const onResize = () => setW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return w;
 }
-function InlineTextarea({ value, onChange, placeholder, ariaLabel, style, onEnter }) {
-  const ref = useRef(null);
-  useAutoResize(ref, value);
-  return (
-    <textarea ref={ref} className="inline-input" value={value} rows={1}
-      onChange={e=>onChange(e.target.value)}
-      placeholder={placeholder} aria-label={ariaLabel} style={style}
-      onKeyDown={e=>{
-        if (e.key === "Enter" && !e.shiftKey && onEnter) { e.preventDefault(); onEnter(); }
-      }}/>
-  );
+
+const CollapsedCtx = React.createContext({ map: {}, toggle: () => {}, setMany: () => {} });
+
+function useCollapsedStore() {
+  const [map, setMap] = useState(() => readJSON(KEY_COLLAPSED, {}));
+  return useMemo(() => ({
+    map,
+    toggle: (id) => setMap(prev => {
+      const next = { ...prev };
+      if (next[id]) delete next[id]; else next[id] = true;
+      writeJSON(KEY_COLLAPSED, next);
+      return next;
+    }),
+    setMany: (ids, value) => setMap(prev => {
+      const next = { ...prev };
+      for (const id of ids) { if (value) next[id] = true; else delete next[id]; }
+      writeJSON(KEY_COLLAPSED, next);
+      return next;
+    }),
+  }), [map]);
+}
+
+function useCollapsed(areaId) {
+  const store = useContext(CollapsedCtx);
+  return [
+    !!store.map[areaId],
+    useCallback(() => store.toggle(areaId), [store, areaId]),
+    store.setMany,
+  ];
+}
+
+function useFilterForProject(projectId) {
+  const [map, setMap] = useState(() => readJSON(KEY_FILTER, {}));
+  const value = map[projectId] || "all";
+  const setValue = useCallback((v) => {
+    setMap(prev => {
+      const next = { ...prev };
+      if (!v || v === "all") delete next[projectId]; else next[projectId] = v;
+      writeJSON(KEY_FILTER, next);
+      return next;
+    });
+  }, [projectId]);
+  return [value, setValue];
 }
 
 /* ============================================================
-   Status pill (item)
+   Popover positioner (fixed, viewport-bounded)
    ============================================================ */
-function ItemStatusPill({ value, onChange }) {
-  const [open, setOpen] = useState(false);
+function positionPopover(anchorRect, popEl, prefer = "below") {
+  if (!popEl) return {};
+  const margin = 6;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const pw = popEl.offsetWidth, ph = popEl.offsetHeight;
+  let top = prefer === "below" ? anchorRect.bottom + margin : anchorRect.top - ph - margin;
+  let left = anchorRect.left;
+  if (left + pw > vw - 12) left = Math.max(12, vw - pw - 12);
+  if (top + ph > vh - 12) top = Math.max(12, anchorRect.top - ph - margin);
+  if (top < 12) top = 12;
+  return { top: top + "px", left: left + "px" };
+}
+
+/* ============================================================
+   Status popover
+   ============================================================ */
+function StatusPopover({ value, onChange, anchorRef, onClose }) {
   const ref = useRef(null);
-  const m = ITEM_STATUS_META[value] || ITEM_STATUS_META.pending;
-  useOutsideClick(ref, () => setOpen(false));
+  const [pos, setPos] = useState({});
+  useLayoutEffect(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect) setPos(positionPopover(rect, ref.current));
+  }, [anchorRef]);
+  useOutsideClick(ref, onClose);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
   return (
-    <div ref={ref} style={{position:"relative"}}>
-      <button type="button" className="status-pill focusable"
-        onClick={()=>setOpen(o=>!o)}
-        aria-haspopup="listbox" aria-expanded={open}
-        aria-label={`Status: ${m.label}. Click to change.`}
-        style={{background:m.bg, color:m.text, minWidth:96, justifyContent:"flex-start"}}>
-        <span className="dot" style={{background:m.dot}}/>
-        <span>{m.label}</span>
-      </button>
-      {open && (
-        <div className="popover" role="listbox" style={{top:"calc(100% + 4px)", left:0}}>
-          {ITEM_STATUSES.map(s => {
-            const sm = ITEM_STATUS_META[s];
-            const active = s === value;
-            return (
-              <button key={s} type="button"
-                className={`popover-item ${active?"active":""}`}
-                role="option" aria-selected={active}
-                onClick={()=>{ onChange(s); setOpen(false); }}>
-                <span style={{width:8, height:8, borderRadius:"50%", background:sm.dot, flexShrink:0}}/>
-                <span style={{flex:1}}>{sm.label}</span>
-                {active && <Icon.Check style={{color:"var(--accent)"}}/>}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <div ref={ref} className="popover" role="listbox" style={pos}>
+      {ITEM_STATUSES.map(s => (
+        <button key={s} type="button" className="popover-item"
+          role="option" aria-selected={s===value}
+          onClick={()=>{ onChange(s); onClose(); }}>
+          <StatusGlyph status={s}/>
+          <span className="label">{ITEM_STATUS_LABEL[s]}</span>
+          {s === value && <Icon.Check className="check" width="14" height="14"/>}
+        </button>
+      ))}
     </div>
   );
 }
 
 /* ============================================================
-   Project status pill (custom popover, matches design)
+   Project status popover
    ============================================================ */
-function ProjectStatusPill({ value, onChange }) {
+function ProjectStatusPopover({ value, onChange, anchorRef, onClose }) {
+  const ref = useRef(null);
+  const [pos, setPos] = useState({});
+  useLayoutEffect(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect) setPos(positionPopover(rect, ref.current));
+  }, [anchorRef]);
+  useOutsideClick(ref, onClose);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div ref={ref} className="popover" role="listbox" style={pos}>
+      {PROJECT_STATUSES.map(s => {
+        const m = PROJECT_STATUS_META[s];
+        return (
+          <button key={s} type="button" className="popover-item"
+            role="option" aria-selected={s===value}
+            onClick={()=>{ onChange(s); onClose(); }}>
+            <span style={{width:10, height:10, borderRadius:"50%", background:m.fg, flexShrink:0}}/>
+            <span className="label">{s}</span>
+            {s === value && <Icon.Check className="check" width="14" height="14"/>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProjectStatusBadge({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const m = PROJECT_STATUS_META[value] || PROJECT_STATUS_META["On track"];
-  useOutsideClick(ref, () => setOpen(false));
   return (
-    <div ref={ref} style={{position:"relative"}}>
-      <button type="button" className="status-pill focusable"
+    <>
+      <button ref={ref} type="button" className="project-status"
+        style={{ background: m.bg, color: m.fg }}
         onClick={()=>setOpen(o=>!o)}
-        aria-haspopup="listbox" aria-expanded={open}
-        aria-label={`Project status: ${value}. Click to change.`}
-        style={{background:m.bg, color:m.text, padding:"5px 12px 5px 10px", fontSize:12}}>
-        <span className="dot" style={{background:m.dot, width:7, height:7}}/>
-        <span>{value}</span>
+        aria-label={`Project status: ${value}. Click to change.`}>
+        <span className="dot" style={{ background: m.fg }}/>{value}
       </button>
-      {open && (
-        <div className="popover" role="listbox" style={{top:"calc(100% + 4px)", right:0, minWidth:160}}>
-          {PROJECT_STATUSES.map(s => {
-            const sm = PROJECT_STATUS_META[s];
-            const active = s === value;
-            return (
-              <button key={s} type="button"
-                className={`popover-item ${active?"active":""}`}
-                role="option" aria-selected={active}
-                onClick={()=>{ onChange(s); setOpen(false); }}>
-                <span style={{width:8, height:8, borderRadius:"50%", background:sm.dot, flexShrink:0}}/>
-                <span style={{flex:1}}>{s}</span>
-                {active && <Icon.Check style={{color:"var(--accent)"}}/>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      {open && <ProjectStatusPopover value={value} onChange={onChange} anchorRef={ref} onClose={()=>setOpen(false)}/>}
+    </>
   );
 }
 
 /* ============================================================
-   Owner chip + popover
+   Owner avatar + popover
    ============================================================ */
-function OwnerChip({ value, onChange, suggestions }) {
+function OwnerAvatar({ value, onChange, suggestions, dark }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value || "");
+  const ref = useRef(null);
+  return (
+    <>
+      {value ? (
+        <button ref={ref} type="button" className="avatar"
+          title={value}
+          style={{ background: avatarColor(value, dark) }}
+          onClick={()=>setOpen(o=>!o)}
+          aria-label={`Owner: ${value}. Click to change.`}>
+          {initialsOf(value) || "·"}
+        </button>
+      ) : (
+        <button ref={ref} type="button" className="avatar empty"
+          onClick={()=>setOpen(o=>!o)}
+          aria-label="Add owner">
+          <Icon.Plus/>
+        </button>
+      )}
+      {open && (
+        <OwnerPopover value={value} onChange={onChange} suggestions={suggestions}
+          anchorRef={ref} onClose={()=>setOpen(false)}/>
+      )}
+    </>
+  );
+}
+
+function OwnerPopover({ value, onChange, suggestions, anchorRef, onClose }) {
   const ref = useRef(null);
   const inputRef = useRef(null);
-  useOutsideClick(ref, () => { commit(); });
+  const [draft, setDraft] = useState(value || "");
+  const [pos, setPos] = useState({});
+  useLayoutEffect(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect) setPos(positionPopover(rect, ref.current));
+  }, [anchorRef]);
+  useOutsideClick(ref, onClose);
+  useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  useEffect(() => { setDraft(value || ""); }, [value]);
-  useEffect(() => { if (open && inputRef.current) inputRef.current.focus(); }, [open]);
-
-  const commit = () => {
-    if (!open) return;
-    if (draft !== value) onChange(draft.trim());
-    setOpen(false);
-  };
+  const save = () => { onChange(draft.trim()); onClose(); };
 
   const filtered = useMemo(() => {
     const q = draft.toLowerCase().trim();
     return Array.from(new Set(suggestions))
       .filter(s => s && s !== value && (!q || s.toLowerCase().includes(q)))
-      .slice(0, 8);
+      .slice(0, 6);
   }, [suggestions, draft, value]);
 
   return (
-    <div ref={ref} style={{position:"relative", justifySelf:"end"}}>
-      {value ? (
-        <button type="button" className="chip focusable" onClick={()=>setOpen(o=>!o)}
-          aria-label={`Owner: ${value}. Click to change.`} title={value}>
-          {value}
-        </button>
-      ) : (
-        <button type="button" className="chip ghost-chip focusable" onClick={()=>setOpen(o=>!o)}
-          aria-label="Add owner">
-          + Owner
-        </button>
-      )}
-      {open && (
-        <div className="popover" style={{top:"calc(100% + 4px)", right:0, minWidth:200}}>
-          <input ref={inputRef} className="inline-input" value={draft}
-            placeholder="Owner name (Me, Kasper, …)"
-            onChange={e=>setDraft(e.target.value)}
-            onKeyDown={e=>{
-              if (e.key === "Enter") { e.preventDefault(); commit(); }
-              if (e.key === "Escape") { e.preventDefault(); setDraft(value||""); setOpen(false); }
-            }}
-            style={{marginBottom:filtered.length?4:0, background:"var(--surface-2)", border:"1px solid var(--border)"}}/>
+    <div ref={ref} className="popover" style={{ ...pos, minWidth: 240, padding: 8 }}>
+      <input ref={inputRef} className="popover-input" value={draft}
+        placeholder="Owner (Me, Kasper, …)"
+        onChange={e=>setDraft(e.target.value)}
+        onKeyDown={e=>{ if (e.key === "Enter") { e.preventDefault(); save(); } }}/>
+      {filtered.length > 0 && (
+        <div className="popover-suggestions">
           {filtered.map(s => (
             <button key={s} type="button" className="popover-item"
-              onClick={()=>{ onChange(s); setOpen(false); }}>
-              {s}
+              onClick={()=>{ onChange(s); onClose(); }}>
+              <span className="label">{s}</span>
             </button>
           ))}
-          {value && (
-            <button type="button" className="popover-item"
-              style={{color:"var(--danger)"}}
-              onClick={()=>{ onChange(""); setOpen(false); }}>
-              <Icon.X/> Clear owner
-            </button>
-          )}
         </div>
       )}
+      <div className="popover-foot">
+        {value && (
+          <button type="button" className="btn btn-ghost"
+            style={{ color: "var(--danger)" }}
+            onClick={()=>{ onChange(""); onClose(); }}>
+            Clear
+          </button>
+        )}
+        <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn btn-outline"
+          style={{ background: "var(--text)", color: "var(--surface)", borderColor: "var(--text)" }}
+          onClick={save}>Save</button>
+      </div>
     </div>
   );
 }
 
 /* ============================================================
-   Collapse caret
+   Kebab menu
    ============================================================ */
-function Caret({ open, onClick, label }) {
+function KebabMenu({ items, ariaLabel="More" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const [pos, setPos] = useState({});
+  const popRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) setPos(positionPopover(rect, popRef.current));
+  }, [open]);
+  useOutsideClick(popRef, () => setOpen(false));
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
   return (
-    <button type="button" onClick={onClick} aria-label={label} aria-expanded={open}
-      className="iconbtn focusable" style={{width:22, height:22}}>
-      <Icon.Chevron className={`chev${open?" open":""}`}/>
+    <>
+      <button ref={ref} type="button" className="iconbtn"
+        onClick={()=>setOpen(o=>!o)} aria-label={ariaLabel} aria-haspopup="menu" aria-expanded={open}>
+        <Icon.Kebab/>
+      </button>
+      {open && (
+        <div ref={popRef} className="popover" role="menu" style={{ ...pos, minWidth: 180 }}>
+          {items.map((it, i) => (
+            <button key={i} type="button"
+              className="popover-item"
+              role="menuitem"
+              style={ it.danger ? { color: "var(--danger)" } : null }
+              onClick={()=>{ setOpen(false); it.onClick(); }}>
+              {it.icon ? <span style={{display:"flex"}}>{it.icon}</span> : null}
+              <span className="label">{it.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============================================================
+   Confirm dialog
+   ============================================================ */
+function ConfirmDialog({ title, message, confirmLabel="Delete", onConfirm, onCancel }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onConfirm();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onConfirm, onCancel]);
+  return (
+    <div className="modal-backdrop" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+        <h2 id="dlg-title">{title}</h2>
+        <p>{message}</p>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button type="button" className="btn-danger" onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Toast host
+   ============================================================ */
+function ToastHost({ toasts, dismiss }) {
+  return (
+    <div className="toast-host">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast${t.err?" err":""}`}>
+          <span className="toast-msg">{t.msg}</span>
+          {t.action && (
+            <button type="button" className="toast-btn" onClick={()=>{ t.action.onClick(); dismiss(t.id); }}>
+              {t.action.label}
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   Command palette
+   ============================================================ */
+function CommandPalette({ projects, onClose, onAddProject, onJump }) {
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const results = useMemo(() => {
+    const query = q.trim();
+    if (!query || query.startsWith("/")) return [];
+    const lc = query.toLowerCase();
+    const out = [];
+    for (const p of projects) {
+      if (p.name.toLowerCase().includes(lc)) {
+        out.push({ kind: "project", label: p.name, meta: "Project", projectId: p.id });
+      }
+      for (const a of p.areas) {
+        if (a.name.toLowerCase().includes(lc)) {
+          out.push({ kind: "area", label: a.name, meta: p.name, projectId: p.id, areaId: a.id });
+        }
+        for (const it of a.items) {
+          if (it.text && it.text.toLowerCase().includes(lc)) {
+            out.push({ kind: "item", label: it.text, meta: `${p.name} · ${a.name}`, projectId: p.id, areaId: a.id, itemId: it.id });
+          }
+        }
+      }
+      if (out.length > 40) break;
+    }
+    return out.slice(0, 40);
+  }, [q, projects]);
+
+  useEffect(() => { setActive(0); }, [q]);
+
+  const trigger = (i) => {
+    if (q.trim().startsWith("/p ")) {
+      const name = q.slice(3).trim();
+      if (name) { onAddProject(name); onClose(); }
+      return;
+    }
+    const r = results[i];
+    if (!r) return;
+    onJump(r);
+    onClose();
+  };
+
+  return (
+    <div className="palette-backdrop" onMouseDown={(e)=>{ if (e.target === e.currentTarget) onClose(); }}>
+      <div className="palette" role="dialog" aria-label="Command palette">
+        <input
+          ref={inputRef}
+          className="palette-input"
+          value={q}
+          placeholder="Search projects, areas, items — or `/p Name` to add a project"
+          onChange={e=>setQ(e.target.value)}
+          onKeyDown={e=>{
+            if (e.key === "Escape") onClose();
+            else if (e.key === "ArrowDown") { e.preventDefault(); setActive(a => Math.min(results.length-1, a+1)); }
+            else if (e.key === "ArrowUp")   { e.preventDefault(); setActive(a => Math.max(0, a-1)); }
+            else if (e.key === "Enter")     { e.preventDefault(); trigger(active); }
+          }}
+        />
+        <div className="palette-list">
+          {q.trim().startsWith("/p ") ? (
+            <button type="button" className="palette-item active" onClick={()=>trigger(0)}>
+              <span className="palette-item-kind">New</span>
+              <span className="palette-item-text">Create project "{q.slice(3).trim() || "Untitled"}"</span>
+            </button>
+          ) : results.length === 0 ? (
+            <div className="palette-empty">
+              {q.trim() ? "No matches." : "Type to search · `/p Name` to add a project"}
+            </div>
+          ) : (
+            results.map((r, i) => (
+              <button key={i} type="button"
+                className={`palette-item${i===active?" active":""}`}
+                onMouseEnter={()=>setActive(i)}
+                onClick={()=>trigger(i)}>
+                <span className="palette-item-kind">{r.kind}</span>
+                <span className="palette-item-text">{r.label}</span>
+                <span className="palette-item-meta">{r.meta}</span>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="palette-hint">
+          <span><kbd>↑↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> open</span>
+          <span><kbd>esc</kbd> close</span>
+          <span><kbd>/p</kbd> new project</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Theme toggle
+   ============================================================ */
+function ThemeToggle({ mode, setMode }) {
+  const next = mode === "system" ? "light" : mode === "light" ? "dark" : "system";
+  const Glyph = mode === "system" ? Icon.Monitor : mode === "light" ? Icon.Sun : Icon.Moon;
+  const label = `Theme: ${mode}. Click for ${next}.`;
+  return (
+    <button type="button" className="iconbtn" aria-label={label} title={label}
+      onClick={()=>setMode(next)}>
+      <Glyph/>
     </button>
   );
 }
 
 /* ============================================================
-   Item row
+   Inline edit primitives
    ============================================================ */
-function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, ownerSuggestions }) {
+function ItemText({ value, onChange, onEnter, onBackspaceEmpty, autoFocus }) {
+  const ref = useRef(null);
+  useAutoResize(ref, value);
+  useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
+  return (
+    <textarea ref={ref} className="row-text" rows={1}
+      value={value}
+      placeholder="Empty item"
+      onChange={e=>onChange(e.target.value)}
+      onKeyDown={e=>{
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onEnter?.(); }
+        else if (e.key === "Backspace" && !value) { onBackspaceEmpty?.(e); }
+      }}/>
+  );
+}
+
+/* ============================================================
+   ItemRow
+   ============================================================ */
+function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions, dark, autoFocus, onEnter, highlight }) {
   const [drag, setDrag] = useContext(DragCtx);
   const [dropPos, setDropPos] = useState(null);
-  const isSrc = drag?.kind==='item' && drag.itemId === item.id;
+  const [statusOpen, setStatusOpen] = useState(false);
+  const statusBtnRef = useRef(null);
+  const rowRef = useRef(null);
+  const isSrc = drag?.kind === 'item' && drag.itemId === item.id;
 
   const dragStart = (e) => {
-    setDrag({ kind:'item', projectId, sectionKey, areaId, itemId: item.id });
+    setDrag({ kind:'item', projectId, areaId, itemId: item.id });
     e.dataTransfer.effectAllowed = 'move';
     try { e.dataTransfer.setData('text/plain', item.id); } catch {}
     e.stopPropagation();
@@ -789,32 +1521,60 @@ function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, owne
     if (drag?.kind !== 'item') return;
     e.preventDefault(); e.stopPropagation();
     const pos = dropPos; setDropPos(null);
-    window.__pcDrop?.({ targetKind:'item', projectId, sectionKey, areaId, itemId: item.id, position: pos });
+    window.__pcDrop?.({ targetKind:'item', projectId, areaId, itemId: item.id, position: pos });
   };
+
+  useEffect(() => {
+    if (highlight && rowRef.current) {
+      rowRef.current.classList.add("highlight-flash");
+      const t = setTimeout(() => rowRef.current?.classList.remove("highlight-flash"), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [highlight]);
 
   return (
     <div
-      draggable
-      onDragStart={dragStart}
+      ref={rowRef}
+      data-empty-owner={!item.owner}
+      className={`row ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
       onDragOver={dragOver}
       onDragLeave={dragLeave}
       onDrop={drop}
-      onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
-      className={`row ${isSrc?'ghost is-dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}>
-      <span className="grip" aria-hidden="true" title="Drag to reorder">
-        <Icon.Grip style={{width:14, height:14}}/>
-      </span>
-      <ItemStatusPill value={item.status} onChange={(s)=>onChange({ ...item, status: s })}/>
-      <InlineTextarea
+      data-item-id={item.id}>
+      <div className="row-grip"
+        draggable
+        onDragStart={dragStart}
+        onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
+        aria-label="Drag to reorder" title="Drag to reorder">
+        <Icon.Grip/>
+      </div>
+      <div className="row-status">
+        <button ref={statusBtnRef} type="button" className="row-status-btn"
+          onClick={()=>setStatusOpen(o=>!o)}
+          aria-label={`Status: ${ITEM_STATUS_LABEL[item.status]}. Click to change.`}>
+          <StatusGlyph status={item.status}/>
+        </button>
+        {statusOpen && (
+          <StatusPopover value={item.status} anchorRef={statusBtnRef}
+            onChange={(s)=>onChange({ ...item, status: s })}
+            onClose={()=>setStatusOpen(false)}/>
+        )}
+      </div>
+      <ItemText
         value={item.text}
         onChange={(t)=>onChange({ ...item, text: t })}
-        placeholder="Describe this item…"
-        ariaLabel="Item description"
-        style={{paddingTop:5, paddingBottom:5}}
+        onEnter={onEnter}
+        onBackspaceEmpty={(e)=>{ e.preventDefault(); onDelete(); }}
+        autoFocus={autoFocus}
       />
-      <OwnerChip value={item.owner} onChange={(o)=>onChange({ ...item, owner: o })} suggestions={ownerSuggestions}/>
+      <div className="row-owner">
+        <OwnerAvatar value={item.owner}
+          onChange={(o)=>onChange({ ...item, owner: o })}
+          suggestions={ownerSuggestions}
+          dark={dark}/>
+      </div>
       <div className="row-actions">
-        <button type="button" className="iconbtn danger focusable" onClick={onDelete} aria-label="Delete item" title="Delete">
+        <button type="button" className="iconbtn danger" onClick={onDelete} aria-label="Delete item" title="Delete">
           <Icon.X/>
         </button>
       </div>
@@ -823,15 +1583,16 @@ function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, owne
 }
 
 /* ============================================================
-   Area block
+   AreaSection
    ============================================================ */
-function AreaBlock({ projectId, sectionKey, area, onChange, onDelete, ownerSuggestions }) {
+function AreaSection({ projectId, area, filter, onChange, onDelete, onDeleteItem, ownerSuggestions, dark, focusItemId, setFocusItemId, highlightItemId }) {
+  const [collapsed, toggle] = useCollapsed(area.id);
   const [drag, setDrag] = useContext(DragCtx);
   const [dropPos, setDropPos] = useState(null);
-  const isSrc = drag?.kind==='area' && drag.areaId === area.id;
+  const isSrc = drag?.kind === 'area' && drag.areaId === area.id;
 
   const dragStart = (e) => {
-    setDrag({ kind:'area', projectId, sectionKey, areaId: area.id });
+    setDrag({ kind:'area', projectId, areaId: area.id });
     e.dataTransfer.effectAllowed = 'move';
     try { e.dataTransfer.setData('text/plain', area.id); } catch {}
     e.stopPropagation();
@@ -850,17 +1611,31 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete, ownerSugge
     e.preventDefault(); e.stopPropagation();
     const pos = dropPos; setDropPos(null);
     if (drag.kind === 'item' && pos === 'into') {
-      window.__pcDrop?.({ targetKind:'area-empty', projectId, sectionKey, areaId: area.id });
+      window.__pcDrop?.({ targetKind:'area-empty', projectId, areaId: area.id });
     } else if (drag.kind === 'area') {
-      window.__pcDrop?.({ targetKind:'area', projectId, sectionKey, areaId: area.id, position: pos });
+      window.__pcDrop?.({ targetKind:'area', projectId, areaId: area.id, position: pos });
     }
   };
 
-  const setName = (name) => onChange({ ...area, name });
-  const toggleCollapsed = () => onChange({ ...area, collapsed: !area.collapsed });
   const updateItem = (i, updated) => onChange({ ...area, items: area.items.map((it, idx) => idx === i ? updated : it) });
-  const deleteItem = (i) => onChange({ ...area, items: area.items.filter((_, idx) => idx !== i) });
-  const addItem = () => onChange({ ...area, collapsed: false, items: [...area.items, emptyItem()] });
+  const deleteItem = (i) => {
+    const item = area.items[i];
+    if (item) onDeleteItem(item.id);
+  };
+  const addItem = (insertAfterIdx) => {
+    const items = [...area.items];
+    const ni = emptyItem();
+    items.splice(insertAfterIdx == null ? items.length : insertAfterIdx + 1, 0, ni);
+    setFocusItemId(ni.id);
+    onChange({ ...area, items });
+  };
+
+  const filteredItems = useMemo(() => {
+    if (!filter || filter === "all") return area.items;
+    return area.items.filter(i => i.status === filter);
+  }, [area.items, filter]);
+
+  if (filter && filter !== "all" && filteredItems.length === 0) return null;
 
   const counts = useMemo(() => ({
     done: area.items.filter(i => i.status === "done").length,
@@ -868,147 +1643,115 @@ function AreaBlock({ projectId, sectionKey, area, onChange, onDelete, ownerSugge
   }), [area.items]);
 
   return (
-    <div
-      draggable
-      onDragStart={dragStart}
+    <section
       onDragOver={dragOver}
       onDragLeave={dragLeave}
       onDrop={drop}
-      onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
-      className={`${isSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${dropPos==='into'?'drop-into':''}`}
-      style={{marginTop:8}}>
-      <div style={{display:"flex", alignItems:"center", gap:6, padding:"2px 4px"}}>
-        <span className="grip" aria-hidden="true" title="Drag to reorder area">
-          <Icon.Grip style={{width:12, height:12}}/>
-        </span>
-        <Caret open={!area.collapsed} onClick={toggleCollapsed}
-          label={area.collapsed ? "Expand area" : "Collapse area"}/>
-        <InlineInput
-          value={area.name}
-          onChange={setName}
-          placeholder="Area name (e.g. N8N, Email Copy)"
-          ariaLabel="Area name"
-          style={{fontWeight:600, fontSize:13.5, color:"var(--text)", flex:1, minWidth:0}}
-        />
-        {counts.total > 0 && (
-          <span style={{fontSize:11.5, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap"}}>
-            {counts.done}/{counts.total}
-          </span>
-        )}
-        <button type="button" onClick={addItem} className="btn-ghost focusable"
-          style={{fontSize:11.5, color:"var(--accent-text)"}}>
-          <Icon.Plus style={{width:11, height:11}}/> Item
-        </button>
-        <button type="button" onClick={onDelete} className="iconbtn danger focusable"
-          aria-label="Delete area" title="Delete area">
-          <Icon.X/>
-        </button>
-      </div>
-      {!area.collapsed && (
-        <div className="area-body" style={{marginTop:4}}>
-          {area.items.length === 0 && (
-            <div style={{fontSize:12, color:"var(--text-muted)", padding:"6px 8px", fontStyle:"italic"}}>
-              Empty — click <strong style={{color:"var(--text-soft)"}}>+ Item</strong> or drop one here.
-            </div>
-          )}
-          {area.items.map((it, i) => (
-            <ItemRow key={it.id}
-              projectId={projectId} sectionKey={sectionKey} areaId={area.id}
-              item={it}
-              ownerSuggestions={ownerSuggestions}
-              onChange={(updated)=>updateItem(i, updated)}
-              onDelete={()=>deleteItem(i)}
-            />
-          ))}
+      className={`area ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${dropPos==='into'?'drop-into':''}`}
+      data-area-id={area.id}>
+      <div className="area-header">
+        <div className="area-grip" draggable
+          onDragStart={dragStart}
+          onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
+          aria-label="Drag to reorder area" title="Drag to reorder area">
+          <Icon.Grip style={{ width: 12, height: 12, color: "var(--text-faint)" }}/>
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ============================================================
-   Section block
-   ============================================================ */
-function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange, collapsed, onToggleCollapsed, ownerSuggestions }) {
-  const [drag] = useContext(DragCtx);
-  const [dropEmpty, setDropEmpty] = useState(false);
-
-  const updateArea = (i, updated) => onChange(areas.map((a, idx) => idx === i ? updated : a));
-  const deleteArea = (i) => onChange(areas.filter((_, idx) => idx !== i));
-  const addArea = () => onChange([...areas, emptyArea("New area")]);
-
-  const counts = useMemo(() => {
-    const all = areas.flatMap(a => a.items);
-    return { done: all.filter(i => i.status==="done").length, total: all.length };
-  }, [areas]);
-
-  const sectionDragOver = (e) => {
-    if (drag?.kind === 'item' && areas.length === 0) { e.preventDefault(); setDropEmpty(true); }
-  };
-  const sectionDrop = (e) => {
-    if (drag?.kind === 'item' && areas.length === 0) {
-      e.preventDefault(); setDropEmpty(false);
-      window.__pcDrop?.({ targetKind:'section-empty', projectId, sectionKey });
-    }
-  };
-
-  return (
-    <div style={{marginTop:24}}>
-      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:8, paddingBottom:6, borderBottom:"1px solid var(--border)"}}>
-        <Caret open={!collapsed} onClick={onToggleCollapsed}
-          label={collapsed?"Expand section":"Collapse section"}/>
-        <div className="section-label">{label}</div>
-        {counts.total > 0 && (
-          <span style={{fontSize:11, color:"var(--text-muted)", fontWeight:600}}>· {counts.done}/{counts.total}</span>
-        )}
-        <div style={{flex:1}}/>
-        <button type="button" onClick={addArea} className="btn-ghost focusable"
-          style={{fontSize:11.5}}>
-          <Icon.Plus style={{width:11, height:11}}/> Area
+        <button type="button" className={`area-caret${!collapsed?' open':''}`}
+          onClick={toggle}
+          aria-label={collapsed ? "Expand area" : "Collapse area"}
+          aria-expanded={!collapsed}>
+          <Icon.Chevron/>
         </button>
+        <input className="area-name" value={area.name}
+          placeholder="Area name"
+          aria-label="Area name"
+          onChange={e=>onChange({ ...area, name: e.target.value })}/>
+        {counts.total > 0 && (
+          <span className="area-count">{counts.done}/{counts.total}</span>
+        )}
+        <div className="area-actions">
+          <button type="button" className="iconbtn" onClick={()=>addItem()} aria-label="Add item" title="Add item">
+            <Icon.Plus/>
+          </button>
+          <KebabMenu ariaLabel="Area actions" items={[
+            { label: "Rename", onClick: ()=>{
+              const el = document.querySelector(`[data-area-id="${area.id}"] .area-name`);
+              el?.focus(); el?.select();
+            } },
+            { label: "Add item", onClick: ()=>addItem() },
+            { label: "Delete area", danger: true, onClick: ()=>onDelete() },
+          ]}/>
+        </div>
       </div>
       {!collapsed && (
-        <div onDragOver={sectionDragOver} onDragLeave={()=>setDropEmpty(false)} onDrop={sectionDrop}>
-          {areas.length === 0 ? (
-            <div
-              className={dropEmpty ? "drop-into" : ""}
-              style={{padding:"22px 16px", borderRadius:"var(--r-md)", border:"1px dashed var(--border-strong)",
-                color:"var(--text-muted)", fontSize:12.5, textAlign:"center", background:"transparent"}}>
-              {emptyHint}
+        <div className="area-body">
+          {area.items.length === 0 ? (
+            <div className="area-empty">
+              No items yet — <button type="button" onClick={()=>addItem()}>add one</button>, or drop one here.
             </div>
           ) : (
-            areas.map((a, i) => (
-              <AreaBlock key={a.id}
-                projectId={projectId} sectionKey={sectionKey}
-                area={a}
-                ownerSuggestions={ownerSuggestions}
-                onChange={(updated)=>updateArea(i, updated)}
-                onDelete={()=>deleteArea(i)}
-              />
-            ))
+            filteredItems.map((it) => {
+              const realIdx = area.items.indexOf(it);
+              return (
+                <ItemRow key={it.id}
+                  projectId={projectId} areaId={area.id}
+                  item={it}
+                  ownerSuggestions={ownerSuggestions}
+                  dark={dark}
+                  autoFocus={focusItemId === it.id}
+                  highlight={highlightItemId === it.id}
+                  onChange={(updated)=>updateItem(realIdx, updated)}
+                  onDelete={()=>deleteItem(realIdx)}
+                  onEnter={()=>addItem(realIdx)}
+                />
+              );
+            })
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+/* ============================================================
+   FilterBar
+   ============================================================ */
+function FilterBar({ counts, active, onChange, onCollapseAll, onExpandAll }) {
+  const chips = [
+    { key: "all", label: "All", count: counts.total },
+    ...ITEM_STATUSES.map(s => ({ key: s, label: ITEM_STATUS_LABEL[s], count: counts[s] || 0 })),
+  ];
+  return (
+    <div className="filterbar">
+      {chips.map(c => (
+        <button key={c.key} type="button"
+          className={`filter-chip${active === c.key ? " active" : ""}`}
+          onClick={()=>onChange(active === c.key && c.key !== "all" ? "all" : c.key)}>
+          {c.key !== "all" && <StatusGlyph status={c.key}/>}
+          {c.label}
+          {c.count > 0 && <span className="count">{c.count}</span>}
+        </button>
+      ))}
+      <div className="filterbar-spacer"/>
+      <button type="button" className="filterbar-aux" onClick={onExpandAll}>Expand all</button>
+      <button type="button" className="filterbar-aux" onClick={onCollapseAll}>Collapse all</button>
     </div>
   );
 }
 
 /* ============================================================
-   Project card
+   ProjectCard
    ============================================================ */
-function ProjectCard({ project, onChange, onDelete }) {
+function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusState, setFocusState, requestConfirm, requestToast }) {
   const [drag, setDrag] = useContext(DragCtx);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [dropPos, setDropPos] = useState(null);
-  const [collapsedSections, setCollapsedSections] = useState({});
-  const [collapsedCard, setCollapsedCard] = useState(false);
+  const [filter, setFilter] = useFilterForProject(project.id);
   const [dragArmed, setDragArmed] = useState(false);
-
-  const set = (field) => (v) => onChange({ ...project, [field]: v });
+  const [, , setManyCollapsed] = useCollapsed("__placeholder__");
 
   const dragStart = (e) => {
     if (!dragArmed) { e.preventDefault(); return; }
-    setDrag({ kind:'project', projectId: project.id });
+    setDrag({ kind: 'project', projectId: project.id });
     e.dataTransfer.effectAllowed = 'move';
     try { e.dataTransfer.setData('text/plain', project.id); } catch {}
   };
@@ -1023,19 +1766,45 @@ function ProjectCard({ project, onChange, onDelete }) {
     if (drag?.kind !== 'project') return;
     e.preventDefault();
     const pos = dropPos; setDropPos(null);
-    window.__pcDrop?.({ targetKind:'project', projectId: project.id, position: pos });
+    window.__pcDrop?.({ targetKind: 'project', projectId: project.id, position: pos });
   };
 
-  const isSrc = drag?.kind==='project' && drag.projectId === project.id;
-  const totalItems = (project.whatsBeenDone||[]).concat(project.workingOnNow||[], project.blockers||[])
-    .reduce((acc,a)=>acc + (a.items?.length||0), 0);
+  const isSrc = drag?.kind === 'project' && drag.projectId === project.id;
 
   const ownerSuggestions = useMemo(() => {
-    const all = (project.whatsBeenDone||[]).concat(project.workingOnNow||[], project.blockers||[])
-      .flatMap(a => (a.items||[]).map(i => (i.owner||"").trim()))
-      .filter(Boolean);
+    const all = (project.areas || []).flatMap(a => (a.items || []).map(i => (i.owner||"").trim())).filter(Boolean);
     return Array.from(new Set(all));
   }, [project]);
+
+  const counts = useMemo(() => {
+    const c = { total: 0 };
+    for (const s of ITEM_STATUSES) c[s] = 0;
+    for (const a of project.areas || []) for (const i of a.items || []) {
+      c.total++;
+      if (c[i.status] != null) c[i.status]++;
+    }
+    return c;
+  }, [project]);
+
+  const updateArea = (i, updated) => onChange({ ...project, areas: project.areas.map((a, idx) => idx === i ? updated : a) });
+  const deleteArea = (i) => {
+    const area = project.areas[i];
+    requestConfirm({
+      title: "Delete area?",
+      message: `"${area.name || "Untitled area"}" and its ${area.items.length} item${area.items.length===1?"":"s"} will be permanently deleted.`,
+      onConfirm: () => onChange({ ...project, areas: project.areas.filter((_, idx) => idx !== i) }),
+    });
+  };
+  const addArea = () => {
+    const a = emptyArea("");
+    onChange({ ...project, areas: [...project.areas, a] });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-area-id="${a.id}"] .area-name`);
+      el?.focus();
+    }, 30);
+  };
+
+  const onAllAreaIds = (project.areas || []).map(a => a.id);
 
   return (
     <div
@@ -1045,77 +1814,97 @@ function ProjectCard({ project, onChange, onDelete }) {
       onDragLeave={dragLeave}
       onDrop={drop}
       onDragEnd={()=>{ setDrag(null); setDropPos(null); setDragArmed(false); }}
-      className={`card ${isSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
-      style={{padding:"18px 22px", marginBottom:16}}>
-      <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
-        <span
-          className="grip"
+      className={`card ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
+      data-project-id={project.id}>
+      <div className="project-header">
+        <div className="project-grip"
           onMouseDown={()=>setDragArmed(true)}
           onMouseUp={()=>setDragArmed(false)}
           title="Drag to reorder project"
-          aria-label="Drag handle"
-          style={{padding:"0 2px"}}>
-          <Icon.Grip style={{width:16, height:16}}/>
-        </span>
-        <Caret open={!collapsedCard} onClick={()=>setCollapsedCard(c=>!c)}
-          label={collapsedCard ? "Expand project" : "Collapse project"}/>
-        <InlineInput value={project.name} onChange={set("name")}
+          aria-label="Drag handle">
+          <Icon.Grip style={{ width: 16, height: 16, color: "var(--text-faint)" }}/>
+        </div>
+        <input className="project-name" value={project.name}
           placeholder="Project name"
-          ariaLabel="Project name"
-          style={{flex:1, minWidth:160, fontSize:17, fontWeight:700, color:"var(--text)", padding:"4px 8px"}}
-        />
-        <ProjectStatusPill value={project.status} onChange={set("status")}/>
-        {totalItems > 0 && (
-          <span style={{fontSize:11, color:"var(--text-muted)", fontWeight:600, whiteSpace:"nowrap"}}>{totalItems} items</span>
+          aria-label="Project name"
+          onChange={e=>onChange({ ...project, name: e.target.value })}/>
+        <ProjectStatusBadge value={project.status}
+          onChange={(s)=>onChange({ ...project, status: s })}/>
+        {counts.total > 0 && (
+          <span className="project-meta-count">{counts.total} item{counts.total===1?"":"s"}</span>
         )}
-        {confirmDelete ? (
-          <div style={{display:"flex", gap:6, alignItems:"center"}}>
-            <span style={{fontSize:11.5, color:"var(--text-soft)"}}>Delete?</span>
-            <button type="button" onClick={()=>{onDelete(project.id); setConfirmDelete(false);}}
-              className="focusable"
-              style={{background:"var(--danger)", color:"#fff", borderRadius:"var(--r-sm)", padding:"5px 10px", fontSize:11.5, fontWeight:700}}>Yes</button>
-            <button type="button" onClick={()=>setConfirmDelete(false)}
-              className="focusable"
-              style={{background:"var(--hover)", color:"var(--text-soft)", borderRadius:"var(--r-sm)", padding:"5px 10px", fontSize:11.5, fontWeight:700}}>No</button>
-          </div>
-        ) : (
-          <button type="button" onClick={()=>setConfirmDelete(true)} title="Delete project"
-            className="iconbtn danger focusable" aria-label="Delete project"><Icon.Trash/></button>
-        )}
+        <KebabMenu ariaLabel="Project actions" items={[
+          { label: "Add area", onClick: addArea },
+          { label: "Duplicate project", onClick: () => {
+            const dup = JSON.parse(JSON.stringify(project));
+            dup.id = gid("p"); dup.name = project.name + " (copy)"; dup.sortOrder = (project.sortOrder || 0) + 0.5;
+            dup.areas = dup.areas.map(a => ({ ...a, id: gid("a"), items: a.items.map(it => ({ ...it, id: gid("i") })) }));
+            onChange(dup, { duplicate: true });
+          } },
+          { label: "Delete project", danger: true, onClick: () => requestConfirm({
+            title: "Delete project?",
+            message: `"${project.name}" and all its areas and items will be permanently deleted.`,
+            onConfirm: () => onDelete(project.id),
+          }) },
+        ]}/>
       </div>
 
-      {!collapsedCard && (
-        <>
-          {SECTIONS.map(s => (
-            <SectionBlock key={s.key}
-              projectId={project.id}
-              sectionKey={s.key}
-              label={s.label}
-              emptyHint={s.emptyHint}
-              areas={project[s.key] || []}
-              collapsed={!!collapsedSections[s.key]}
-              ownerSuggestions={ownerSuggestions}
-              onToggleCollapsed={()=>setCollapsedSections(c=>({...c, [s.key]: !c[s.key]}))}
-              onChange={(next)=>onChange({ ...project, [s.key]: next })}
-            />
-          ))}
+      <div className="meta-row">
+        <div className="meta-field">
+          <label className="meta-label">Next milestone</label>
+          <input className="meta-input" value={project.nextMilestone}
+            placeholder="The next visible deliverable"
+            onChange={e=>onChange({ ...project, nextMilestone: e.target.value })}/>
+        </div>
+        <div className="meta-field">
+          <label className="meta-label">ETA</label>
+          <input className="meta-input" value={project.eta}
+            placeholder="Fri · Mar 4 · 2w"
+            onChange={e=>onChange({ ...project, eta: e.target.value })}/>
+        </div>
+      </div>
 
-          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:12, marginTop:24, paddingTop:18, borderTop:"1px solid var(--border)"}}>
-            <div>
-              <div className="field-label">Next milestone</div>
-              <input className="field-input" value={project.nextMilestone}
-                onChange={e=>set("nextMilestone")(e.target.value)}
-                placeholder="The next visible deliverable."/>
-            </div>
-            <div>
-              <div className="field-label">ETA</div>
-              <input className="field-input" value={project.eta}
-                onChange={e=>set("eta")(e.target.value)}
-                placeholder="e.g. Fri / Mar 4 / 2w"/>
-            </div>
+      <FilterBar counts={counts} active={filter} onChange={setFilter}
+        onExpandAll={()=>setManyCollapsed(onAllAreaIds, false)}
+        onCollapseAll={()=>setManyCollapsed(onAllAreaIds, true)}/>
+
+      <div className="areas">
+        {(project.areas || []).map((a, i) => (
+          <AreaSection key={a.id}
+            projectId={project.id}
+            area={a}
+            filter={filter}
+            ownerSuggestions={ownerSuggestions}
+            dark={dark}
+            focusItemId={focusState?.projectId === project.id ? focusState.itemId : null}
+            setFocusItemId={(itemId) => setFocusState({ projectId: project.id, itemId })}
+            highlightItemId={null}
+            onChange={(updated)=>updateArea(i, updated)}
+            onDelete={()=>deleteArea(i)}
+            onDeleteItem={(itemId)=>onDeleteItem(project.id, a.id, itemId)}
+          />
+        ))}
+        {(project.areas || []).length === 0 && (
+          <div className="area-empty" style={{ paddingTop: 16 }}>
+            No areas yet — <button type="button" onClick={addArea}>add one</button>.
           </div>
-        </>
-      )}
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Mobile gate
+   ============================================================ */
+function MobileGate() {
+  return (
+    <div className="mobile-gate">
+      <div className="mobile-gate-card">
+        <div className="mobile-gate-icon">🖥️</div>
+        <h2>Open on desktop</h2>
+        <p>Project Central is designed for a screen at least 1024px wide. Open this page on your laptop or desktop.</p>
+      </div>
     </div>
   );
 }
@@ -1124,19 +1913,35 @@ function ProjectCard({ project, onChange, onDelete }) {
    App
    ============================================================ */
 function App() {
-  const [ready, setReady]   = useState(false);
+  const viewportWidth = useViewportWidth();
+  const [themeMode, setThemeMode, resolvedTheme] = useTheme();
+  const dark = resolvedTheme === "dark";
+
+  const [ready, setReady] = useState(false);
   const [projects, setProjects] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast]   = useState({ show:false, msg:"", ok:true });
-  const [sourceMsg, setSourceMsg] = useState("");
+  const [syncState, setSyncState] = useState("idle"); // idle | saving | saved | error | offline
   const saveTimer = useRef(null);
-  const dragState = useDragController();
 
-  const flash = (msg, ok=true) => {
-    setToast({show:true, msg, ok});
-    setTimeout(()=>setToast(t=>({...t, show:false})), 2200);
-  };
+  const [toasts, setToasts] = useState([]);
+  const toastIdRef = useRef(1);
+  const requestToast = useCallback(({ msg, action, ttl = 5000, err = false }) => {
+    const id = toastIdRef.current++;
+    setToasts(prev => [...prev, { id, msg, action, err }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), ttl);
+  }, []);
+  const dismissToast = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), []);
 
+  const [confirm, setConfirm] = useState(null);
+  const requestConfirm = useCallback((c) => setConfirm(c), []);
+
+  const [focusState, setFocusState] = useState(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [highlightItemId, setHighlightItemId] = useState(null);
+
+  const dragState = useState(null);
+  const collapsedStore = useCollapsedStore();
+
+  /* ---- Load ---- */
   useEffect(() => {
     (async () => {
       try {
@@ -1145,126 +1950,214 @@ function App() {
           const norm = remote.map(normalizeProject).sort((a,b)=>a.sortOrder-b.sortOrder);
           setProjects(norm);
           saveLocal(norm);
-          setSourceMsg("Synced from Google Sheets");
+          setSyncState("saved");
         } else {
           const local = loadLocal();
           if (local && local.length) {
             setProjects(local.map(normalizeProject));
-            setSourceMsg("Loaded from local backup (sheet empty)");
+            setSyncState("saved");
           } else {
-            const seed = [{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }];
-            setProjects(seed);
-            setSourceMsg("Started a fresh project");
+            setProjects([{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }]);
+            setSyncState("idle");
           }
         }
-      } catch (e) {
+      } catch {
         const local = loadLocal();
         if (local && local.length) {
           setProjects(local.map(normalizeProject));
-          setSourceMsg("Offline — using local backup");
-          flash("Couldn't reach n8n — working offline", false);
+          setSyncState("offline");
+          requestToast({ msg: "Working offline — couldn't reach n8n", err: true });
         } else {
-          const seed = [{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }];
-          setProjects(seed);
-          setSourceMsg("Offline — starting fresh");
-          flash("Couldn't reach n8n — working offline", false);
+          setProjects([{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }]);
+          setSyncState("offline");
+          requestToast({ msg: "Working offline — couldn't reach n8n", err: true });
         }
       }
       setReady(true);
     })();
-  }, []);
+  }, [requestToast]);
 
-  const persist = useCallback((next) => {
+  /* ---- Persist ---- */
+  const persist = useCallback((next, { immediate = false } = {}) => {
     saveLocal(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaving(true);
-    saveTimer.current = setTimeout(async () => {
-      try { await apiSave(next); flash("Saved"); }
-      catch { flash("Save failed (kept local copy)", false); }
-      finally { setSaving(false); }
-    }, 900);
-  }, []);
+    setSyncState("saving");
+    const flush = async () => {
+      try { await apiSave(next); setSyncState("saved"); }
+      catch { setSyncState("error"); requestToast({ msg: "Save failed (kept local copy)", err: true }); }
+    };
+    if (immediate) { flush(); return; }
+    saveTimer.current = setTimeout(flush, 900);
+  }, [requestToast]);
 
-  const updateProject = (updated) => {
-    const next = projects.map(p => p.id === updated.id ? updated : p);
-    setProjects(next); persist(next);
-  };
-  const deleteProject = (id) => {
-    const next = projects.filter(p => p.id !== id).map((p,i)=>({...p, sortOrder: i+1}));
-    setProjects(next); persist(next);
-  };
-  const addProject = () => {
-    const next = [...projects, { ...emptyProject(), sortOrder: projects.length + 1 }];
-    setProjects(next); persist(next);
-    setTimeout(()=>window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
-  };
+  const updateProject = useCallback((updated, opts = {}) => {
+    setProjects(prev => {
+      if (opts.duplicate) {
+        const next = [...prev, updated].sort((a,b)=>a.sortOrder-b.sortOrder).map((p,i)=>({...p, sortOrder: i+1}));
+        persist(next);
+        return next;
+      }
+      const next = prev.map(p => p.id === updated.id ? updated : p);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
 
-  /* drag dispatcher */
+  const deleteProject = useCallback((id) => {
+    setProjects(prev => {
+      const next = prev.filter(p => p.id !== id).map((p,i)=>({...p, sortOrder: i+1}));
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const addProject = useCallback((name = "New project") => {
+    setProjects(prev => {
+      const np = { ...emptyProject(), name, sortOrder: prev.length + 1 };
+      const next = [...prev, np];
+      persist(next);
+      setTimeout(()=>window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
+      setTimeout(()=>{
+        const el = document.querySelector(`[data-project-id="${np.id}"] .project-name`);
+        el?.focus(); el?.select?.();
+      }, 80);
+      return next;
+    });
+  }, [persist]);
+
+  /* ---- Drag dispatcher ---- */
   useEffect(() => {
     window.__pcDrop = (target) => {
       const drag = dragState[0];
       if (!drag) return;
-      const next = JSON.parse(JSON.stringify(projects));
-      const findProject = (pid) => next.find(p => p.id === pid);
-      const removeItem = (pid, sectionKey, itemId) => {
-        const p = findProject(pid); if (!p) return null;
-        for (const a of p[sectionKey] || []) {
-          const idx = a.items.findIndex(i => i.id === itemId);
-          if (idx >= 0) return a.items.splice(idx, 1)[0];
-        }
-        return null;
-      };
+      setProjects(prev => {
+        const next = JSON.parse(JSON.stringify(prev));
+        const findProject = (pid) => next.find(p => p.id === pid);
+        const removeItem = (pid, itemId) => {
+          const p = findProject(pid); if (!p) return null;
+          for (const a of p.areas || []) {
+            const idx = a.items.findIndex(i => i.id === itemId);
+            if (idx >= 0) return a.items.splice(idx, 1)[0];
+          }
+          return null;
+        };
 
-      if (drag.kind === 'project' && target.targetKind === 'project') {
-        if (drag.projectId === target.projectId) return;
-        const fromIdx = next.findIndex(p => p.id === drag.projectId);
-        if (fromIdx < 0) return;
-        const [m] = next.splice(fromIdx, 1);
-        let toIdx = next.findIndex(p => p.id === target.projectId);
-        if (toIdx < 0) return;
-        const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
-        next.splice(insertAt, 0, m);
-        next.forEach((p,i) => p.sortOrder = i+1);
-      }
-      else if (drag.kind === 'area' && target.targetKind === 'area') {
-        if (drag.projectId !== target.projectId || drag.sectionKey !== target.sectionKey) return;
-        const p = findProject(drag.projectId);
-        const list = p[drag.sectionKey];
-        const fromIdx = list.findIndex(a => a.id === drag.areaId);
-        if (fromIdx < 0) return;
-        const [m] = list.splice(fromIdx, 1);
-        let toIdx = list.findIndex(a => a.id === target.areaId);
-        if (toIdx < 0) return;
-        const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
-        list.splice(insertAt, 0, m);
-      }
-      else if (drag.kind === 'item') {
-        const moved = removeItem(drag.projectId, drag.sectionKey, drag.itemId);
-        if (!moved) return;
-        if (target.targetKind === 'item') {
-          const p = findProject(target.projectId);
-          const area = p[target.sectionKey].find(a => a.id === target.areaId);
-          if (!area) return;
-          const idx = area.items.findIndex(i => i.id === target.itemId);
-          area.items.splice(idx + (target.position === 'after' ? 1 : 0), 0, moved);
-        } else if (target.targetKind === 'area-empty') {
-          const p = findProject(target.projectId);
-          const area = p[target.sectionKey].find(a => a.id === target.areaId);
-          if (!area) return;
-          area.items.push(moved);
-        } else if (target.targetKind === 'section-empty') {
-          const p = findProject(target.projectId);
-          const area = emptyArea("New area");
-          area.items.push(moved);
-          p[target.sectionKey].push(area);
+        if (drag.kind === 'project' && target.targetKind === 'project') {
+          if (drag.projectId === target.projectId) return prev;
+          const fromIdx = next.findIndex(p => p.id === drag.projectId);
+          if (fromIdx < 0) return prev;
+          const [m] = next.splice(fromIdx, 1);
+          let toIdx = next.findIndex(p => p.id === target.projectId);
+          if (toIdx < 0) return prev;
+          const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
+          next.splice(insertAt, 0, m);
+          next.forEach((p,i) => p.sortOrder = i+1);
         }
-      }
-
-      setProjects(next);
-      persist(next);
+        else if (drag.kind === 'area' && target.targetKind === 'area') {
+          if (drag.projectId !== target.projectId) return prev;
+          const p = findProject(drag.projectId);
+          const list = p.areas;
+          const fromIdx = list.findIndex(a => a.id === drag.areaId);
+          if (fromIdx < 0) return prev;
+          const [m] = list.splice(fromIdx, 1);
+          let toIdx = list.findIndex(a => a.id === target.areaId);
+          if (toIdx < 0) return prev;
+          const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
+          list.splice(insertAt, 0, m);
+        }
+        else if (drag.kind === 'item') {
+          const moved = removeItem(drag.projectId, drag.itemId);
+          if (!moved) return prev;
+          if (target.targetKind === 'item') {
+            const p = findProject(target.projectId);
+            const area = (p.areas || []).find(a => a.id === target.areaId);
+            if (!area) return prev;
+            const idx = area.items.findIndex(i => i.id === target.itemId);
+            area.items.splice(idx + (target.position === 'after' ? 1 : 0), 0, moved);
+          } else if (target.targetKind === 'area-empty') {
+            const p = findProject(target.projectId);
+            const area = (p.areas || []).find(a => a.id === target.areaId);
+            if (!area) return prev;
+            area.items.push(moved);
+          }
+        }
+        persist(next);
+        return next;
+      });
     };
     return () => { delete window.__pcDrop; };
-  }, [projects, persist, dragState]);
+  }, [persist, dragState]);
+
+  /* ---- Item delete with undo ---- */
+  const deleteItemWithUndo = useCallback((projectId, areaId, itemId) => {
+    let snapshot = null;
+    setProjects(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const p = next.find(x => x.id === projectId); if (!p) return prev;
+      const a = p.areas.find(x => x.id === areaId); if (!a) return prev;
+      const idx = a.items.findIndex(x => x.id === itemId); if (idx < 0) return prev;
+      snapshot = { projectId, areaId, idx, item: a.items[idx] };
+      a.items.splice(idx, 1);
+      persist(next);
+      return next;
+    });
+    if (snapshot) {
+      requestToast({
+        msg: "Item deleted",
+        action: { label: "Undo", onClick: () => {
+          setProjects(prev => {
+            const next = JSON.parse(JSON.stringify(prev));
+            const p = next.find(x => x.id === snapshot.projectId);
+            const a = p?.areas.find(x => x.id === snapshot.areaId);
+            if (!a) return prev;
+            a.items.splice(snapshot.idx, 0, snapshot.item);
+            persist(next);
+            return next;
+          });
+        } },
+      });
+    }
+  }, [persist, requestToast]);
+
+  /* ---- Keyboard shortcuts ---- */
+  useEffect(() => {
+    const onKey = (e) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key === "k") { e.preventDefault(); setPaletteOpen(true); }
+      else if (meta && e.key === "s") {
+        e.preventDefault();
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        setProjects(prev => { persist(prev, { immediate: true }); return prev; });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [persist]);
+
+  /* ---- Palette jump ---- */
+  const jumpTo = useCallback((r) => {
+    setTimeout(() => {
+      let selector;
+      if (r.itemId)      selector = `[data-item-id="${r.itemId}"]`;
+      else if (r.areaId) selector = `[data-area-id="${r.areaId}"]`;
+      else               selector = `[data-project-id="${r.projectId}"]`;
+      const el = document.querySelector(selector);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (r.itemId) {
+          setHighlightItemId(r.itemId);
+          setTimeout(() => setHighlightItemId(null), 1700);
+        }
+      }
+    }, 50);
+  }, []);
+
+  /* ---- Render ---- */
+  if (viewportWidth < 1024) return <MobileGate/>;
+
+  if (!ready) return (
+    <div className="loading"><div className="spinner"/>Loading…</div>
+  );
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(projects, null, 2)], { type: "application/json" });
@@ -1275,67 +2168,81 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  if (!ready) return (
-    <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-muted)", fontSize:13, gap:14}}>
-      <div className="spinner"/>Loading…
-    </div>
-  );
-
-  const statusCounts = PROJECT_STATUSES.reduce((acc,s)=>{ acc[s]=projects.filter(p=>p.status===s).length; return acc; }, {});
+  const syncLabel = {
+    idle: "Ready", saving: "Saving…", saved: "Saved", error: "Save failed", offline: "Offline",
+  }[syncState] || "Ready";
 
   return (
     <DragCtx.Provider value={dragState}>
-      <div className="container">
-        <div className={`toast${toast.show?" show":""}${toast.ok?"":" err"}`} role="status" aria-live="polite">
-          {toast.msg}
-        </div>
-
-        <header style={{display:"flex", alignItems:"flex-end", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:18}}>
-          <div>
-            <h1 style={{margin:0, fontSize:22, fontWeight:800, letterSpacing:"-.02em"}}>Project Central</h1>
-            <div style={{fontSize:12, color:"var(--text-muted)", marginTop:4}}>
-              {projects.length} project{projects.length===1?"":"s"} · {saving ? "saving…" : "all changes saved"}
-              {sourceMsg && <span style={{marginLeft:6}}>· {sourceMsg}</span>}
-            </div>
+    <CollapsedCtx.Provider value={collapsedStore}>
+      <div className="page">
+        <header className="topbar">
+          <div className="topbar-title">
+            <h1>Project Central</h1>
+            <span className="topbar-sub">
+              <span className={`sync-dot ${syncState === "saving" ? "saving" : syncState === "saved" ? "saved" : syncState === "error" ? "error" : ""}`}/>
+              {syncLabel} · {projects.length} project{projects.length===1?"":"s"}
+            </span>
           </div>
-          <div style={{display:"flex", gap:8, alignItems:"center"}}>
-            <button type="button" onClick={exportJson} className="btn focusable">
-              <Icon.Download/> Export
+          <div className="topbar-actions">
+            <button type="button" className="btn" onClick={()=>setPaletteOpen(true)} title="Quick find (⌘K)">
+              Search <span style={{fontSize:10.5, color:"var(--text-faint)", marginLeft:4}}>⌘K</span>
             </button>
-            <a href={SHEET_URL} target="_blank" rel="noreferrer" className="btn focusable" style={{textDecoration:"none"}}>
-              <Icon.Sheet/> Sheet
+            <ThemeToggle mode={themeMode} setMode={setThemeMode}/>
+            <button type="button" className="btn" onClick={exportJson} title="Export as JSON">
+              <Icon.Download/>
+            </button>
+            <a className="btn" href={SHEET_URL} target="_blank" rel="noreferrer" title="Open sheet">
+              <Icon.Sheet/>
             </a>
-            <button type="button" onClick={addProject} className="btn btn-primary focusable">
+            <button type="button" className="btn btn-primary" onClick={()=>addProject()}>
               <Icon.Plus/> Add Project
             </button>
           </div>
         </header>
 
-        {projects.length > 0 && (
-          <div style={{display:"flex", gap:6, flexWrap:"wrap", marginBottom:16}}>
-            {PROJECT_STATUSES.map(s => {
-              const m = PROJECT_STATUS_META[s];
-              const n = statusCounts[s];
-              if (!n) return null;
-              return (
-                <div key={s} className="status-pill" style={{background:m.bg, color:m.text, fontSize:11}}>
-                  <span className="dot" style={{background:m.dot}}/>{s} · {n}
-                </div>
-              );
-            })}
+        {projects.length === 0 ? (
+          <div className="empty-state">
+            <h2>Start a project</h2>
+            <p>Create your first project to begin tracking work.</p>
+            <button type="button" className="btn btn-primary" onClick={()=>addProject()}>
+              <Icon.Plus/> Add Project
+            </button>
+          </div>
+        ) : (
+          <div className="project-list">
+            {projects.map(p => (
+              <ProjectCard key={p.id} project={p} dark={dark}
+                focusState={focusState} setFocusState={setFocusState}
+                requestConfirm={requestConfirm}
+                requestToast={requestToast}
+                onChange={updateProject}
+                onDelete={deleteProject}
+                onDeleteItem={deleteItemWithUndo}
+              />
+            ))}
           </div>
         )}
 
-        {projects.map(p => (
-          <ProjectCard key={p.id} project={p} onChange={updateProject} onDelete={deleteProject}/>
-        ))}
-
-        {projects.length === 0 && (
-          <div className="card" style={{padding:48, textAlign:"center", color:"var(--text-muted)", fontSize:13.5}}>
-            No projects yet. Click <strong style={{color:"var(--text)"}}>+ Add Project</strong> to get started.
-          </div>
+        <ToastHost toasts={toasts} dismiss={dismissToast}/>
+        {confirm && (
+          <ConfirmDialog
+            title={confirm.title}
+            message={confirm.message}
+            onConfirm={()=>{ confirm.onConfirm(); setConfirm(null); }}
+            onCancel={()=>setConfirm(null)}
+          />
+        )}
+        {paletteOpen && (
+          <CommandPalette
+            projects={projects}
+            onClose={()=>setPaletteOpen(false)}
+            onAddProject={(name)=>addProject(name)}
+            onJump={jumpTo}
+          />
         )}
       </div>
+    </CollapsedCtx.Provider>
     </DragCtx.Provider>
   );
 }
