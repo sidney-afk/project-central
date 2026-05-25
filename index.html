@@ -10,49 +10,232 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   *{box-sizing:border-box;}
-  body{margin:0;background:#F8FAFC;font-family:'Inter','Segoe UI',Arial,sans-serif;color:#0F172A;}
-  select,input,textarea{font-family:inherit;}
-  select{appearance:none;cursor:pointer;}
-  button{cursor:pointer;transition:opacity .15s,background .15s;font-family:inherit;}
-  button:hover{opacity:.85;}
-  textarea{resize:vertical;}
-  .card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);}
-  .drag-over{outline:2px dashed #6366F1;outline-offset:-2px;background:#EEF2FF !important;}
+  html,body{margin:0;padding:0;}
+  body{background:#F8FAFC;font-family:'Inter','Segoe UI',Arial,sans-serif;color:#0F172A;-webkit-font-smoothing:antialiased;}
+  button,input,select,textarea{font-family:inherit;color:inherit;}
+  select{appearance:none;cursor:pointer;background:#fff;}
+  button{cursor:pointer;background:none;border:none;padding:0;transition:background .15s, opacity .15s, color .15s;}
+  textarea{resize:none;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);}
   .toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;color:#fff;}
   .toast.show{opacity:1;}
   .field-input{width:100%;padding:9px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#0F172A;outline:none;background:#FAFAFA;}
   .field-input:focus{border-color:#6366F1;background:#fff;}
   .field-label{display:block;font-weight:700;font-size:11px;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+  .drop-before{box-shadow:inset 0 3px 0 0 #6366F1;}
+  .drop-after{box-shadow:inset 0 -3px 0 0 #6366F1;}
+  .drop-into{background:#EEF2FF !important;outline:2px dashed #6366F1;outline-offset:-2px;}
+  .ghost{opacity:.35;}
+  .grip{color:#CBD5E1;cursor:grab;user-select:none;padding:2px 4px;line-height:1;}
+  .grip:active{cursor:grabbing;}
+  .icon-btn{padding:6px;border-radius:6px;color:#94A3B8;}
+  .icon-btn:hover{background:#F1F5F9;color:#475569;}
+  .icon-btn.danger:hover{background:#FEE2E2;color:#B91C1C;}
+  .focus-ring:focus-visible{outline:2px solid #6366F1;outline-offset:2px;border-radius:6px;}
   @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .menu{animation:fadeIn .12s ease-out;}
+  /* Collapsible content */
+  .collapse-content{overflow:hidden;}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
+/* ===========================================================
+   CONFIG
+   =========================================================== */
 const WEBHOOK_URL = "https://synchrosocial.app.n8n.cloud/webhook/project-central";
 const SHEET_URL   = "https://docs.google.com/spreadsheets/d/1ZAGZBMoT1M3i9DndmhNwHurx6iW3i9ESXiMmrPvCB38/edit";
-const STORAGE_KEY = "project-central:v2";
+const STORAGE_KEY = "project-central:v3";
+const LEGACY_STORAGE_KEY = "project-central:v2";
 
-const STATUS_OPTIONS = ["On track","At risk","Blocked","Shipped"];
-const STATUS_META = {
+const PROJECT_STATUSES = ["On track","At risk","Blocked","Shipped"];
+const PROJECT_STATUS_META = {
   "On track": {bg:"#DCFCE7", text:"#15803D", dot:"#16A34A"},
   "At risk":  {bg:"#FEF3C7", text:"#B45309", dot:"#D97706"},
   "Blocked":  {bg:"#FEE2E2", text:"#B91C1C", dot:"#DC2626"},
   "Shipped":  {bg:"#EDE9FE", text:"#6D28D9", dot:"#7C3AED"},
 };
 
-const EMPTY_PROJECT = () => ({
-  id: "p-" + Math.random().toString(36).slice(2,9),
-  name: "New project",
-  status: "On track",
-  whatsBeenDone: "",
-  workingOnNow: "",
-  blockers: "",
-  nextMilestone: "",
-  eta: "",
-  sortOrder: 0,
-});
+const ITEM_STATUSES = ["done","in_progress","waiting","pending","to_plan","blocker"];
+const ITEM_STATUS_META = {
+  done:        { label: "Done",        icon: "✓", bg:"#DCFCE7", text:"#15803D", dot:"#16A34A" },
+  in_progress: { label: "In progress", icon: "→", bg:"#DBEAFE", text:"#1D4ED8", dot:"#2563EB" },
+  waiting:     { label: "Waiting",     icon: "⏸", bg:"#FEF3C7", text:"#B45309", dot:"#D97706" },
+  pending:     { label: "Pending",     icon: "•", bg:"#F1F5F9", text:"#475569", dot:"#64748B" },
+  to_plan:     { label: "To plan",     icon: "…", bg:"#F5F5F4", text:"#78716C", dot:"#A8A29E" },
+  blocker:     { label: "Blocker",     icon: "⛔", bg:"#FEE2E2", text:"#B91C1C", dot:"#DC2626" },
+};
+
+const SECTIONS = [
+  { key: "whatsBeenDone", label: "What's been done", emptyHint: "Nothing logged yet. Add an area to start tracking what's shipped." },
+  { key: "workingOnNow",  label: "Working on now",   emptyHint: "Nothing in flight. Add an area for the work happening now." },
+  { key: "blockers",      label: "Blockers or need from you", emptyHint: "No blockers. Add an area for things waiting on someone else." },
+];
+
+/* ===========================================================
+   IDs & utilities
+   =========================================================== */
+const gid = (prefix="id") => prefix + "-" + Math.random().toString(36).slice(2, 10);
+
+function emptyArea(name="New area") {
+  return { id: gid("a"), name, collapsed: false, items: [] };
+}
+function emptyItem(status="pending") {
+  return { id: gid("i"), text: "", status, owner: "" };
+}
+function emptyProject() {
+  return {
+    id: gid("p"),
+    name: "New project",
+    status: "On track",
+    nextMilestone: "",
+    eta: "",
+    sortOrder: 0,
+    whatsBeenDone: [emptyArea("Pipeline")],
+    workingOnNow:  [],
+    blockers:      [],
+  };
+}
+
+/* ===========================================================
+   Migration: parse legacy rich-text into structured areas
+   =========================================================== */
+const ITEM_STATUS_FROM_MARKER = {
+  "✓": "done", "○": "in_progress", "⏸": "waiting",
+  "→": "in_progress", "·": "pending", "…": "to_plan", "•": "pending",
+};
+const TAG_TO_STATUS = {
+  "DONE": "done", "WAITING": "waiting", "PENDING": "pending",
+  "IN PROGRESS": "in_progress", "TO PLAN": "to_plan", "BLOCKER": "blocker",
+};
+
+function stripMdEscapes(s) { return s.replace(/\\([\[\]\\_*])/g, "$1"); }
+
+function parseSectionText(text) {
+  if (!text || typeof text !== "string") return [];
+  // Split on newlines OR on runs of 3+ spaces (some sources collapse newlines to spaces).
+  const lines = text
+    .split(/\r?\n|(?:[ \t]{3,})/g)
+    .map(l => stripMdEscapes(l).trim())
+    .filter(Boolean);
+  if (!lines.length) return [];
+
+  const areas = [];
+  let current = null;
+
+  for (const raw of lines) {
+    let line = raw;
+    let status = null;
+
+    // status marker at start
+    const first = line.charAt(0);
+    if (ITEM_STATUS_FROM_MARKER[first]) {
+      status = ITEM_STATUS_FROM_MARKER[first];
+      line = line.slice(1).trim();
+    }
+    // optional [TAG] override
+    const tagMatch = line.match(/^\[(DONE|WAITING|PENDING|IN PROGRESS|TO PLAN|BLOCKER)\]\s*/i);
+    if (tagMatch) {
+      status = TAG_TO_STATUS[tagMatch[1].toUpperCase()] || status;
+      line = line.slice(tagMatch[0].length).trim();
+    }
+
+    if (status) {
+      // item — pull trailing " — Owner"
+      let text = line;
+      let owner = "";
+      const parts = text.split(/\s+—\s+/);
+      if (parts.length >= 2) {
+        owner = parts.pop().trim();
+        text  = parts.join(" — ").trim();
+      }
+      if (!current) {
+        current = emptyArea("Items");
+        areas.push(current);
+      }
+      current.items.push({ id: gid("i"), text, status, owner });
+    } else {
+      // header — new area
+      current = emptyArea(line);
+      areas.push(current);
+    }
+  }
+
+  // Drop areas that are empty AND followed by another area (pure section dividers like "TASKS BY AREA").
+  return areas.filter((a, i) => {
+    if (a.items.length > 0) return true;
+    const isLast = i === areas.length - 1;
+    return isLast; // keep last empty area as scaffold
+  });
+}
+
+function migrateSection(value) {
+  if (Array.isArray(value)) return value.map(normalizeArea);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    // Could be JSON we previously wrote
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.map(normalizeArea);
+      } catch {}
+    }
+    return parseSectionText(trimmed);
+  }
+  return [];
+}
+
+function normalizeArea(a, i=0) {
+  return {
+    id: String(a?.id || gid("a")),
+    name: String(a?.name ?? `Area ${i+1}`),
+    collapsed: Boolean(a?.collapsed),
+    items: Array.isArray(a?.items) ? a.items.map(normalizeItem) : [],
+  };
+}
+function normalizeItem(it) {
+  return {
+    id: String(it?.id || gid("i")),
+    text: String(it?.text ?? ""),
+    status: ITEM_STATUSES.includes(it?.status) ? it.status : "pending",
+    owner: String(it?.owner ?? ""),
+  };
+}
+function normalizeProject(p, i=0) {
+  return {
+    id: String(p?.id || gid("p")),
+    name: String(p?.name || "Untitled"),
+    status: PROJECT_STATUSES.includes(p?.status) ? p.status : "On track",
+    nextMilestone: String(p?.nextMilestone ?? ""),
+    eta: String(p?.eta ?? ""),
+    sortOrder: Number(p?.sortOrder) || i + 1,
+    whatsBeenDone: migrateSection(p?.whatsBeenDone),
+    workingOnNow:  migrateSection(p?.workingOnNow),
+    blockers:      migrateSection(p?.blockers),
+  };
+}
+
+/* ===========================================================
+   API
+   =========================================================== */
+function serializeForSheet(projects) {
+  // Sheet columns stay the same; the three section columns hold JSON strings.
+  return projects.map(p => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    nextMilestone: p.nextMilestone,
+    eta: p.eta,
+    sortOrder: p.sortOrder,
+    whatsBeenDone: JSON.stringify(p.whatsBeenDone || []),
+    workingOnNow:  JSON.stringify(p.workingOnNow  || []),
+    blockers:      JSON.stringify(p.blockers      || []),
+  }));
+}
 
 async function apiLoad() {
   const r = await fetch(WEBHOOK_URL, { method: "GET" });
@@ -60,181 +243,600 @@ async function apiLoad() {
   const d = await r.json();
   return Array.isArray(d.projects) ? d.projects : [];
 }
-
 async function apiSave(projects) {
   const r = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ projects }),
+    body: JSON.stringify({ projects: serializeForSheet(projects) }),
   });
   if (!r.ok) throw new Error("Save failed: " + r.status);
 }
-
 function loadLocal() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
-  catch { return null; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 function saveLocal(projects) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); } catch {}
 }
 
-function normalize(p, i) {
-  return {
-    id: String(p.id || ("p-" + i)),
-    name: String(p.name || "Untitled"),
-    status: STATUS_OPTIONS.includes(p.status) ? p.status : "On track",
-    whatsBeenDone: String(p.whatsBeenDone || ""),
-    workingOnNow: String(p.workingOnNow || ""),
-    blockers: String(p.blockers || ""),
-    nextMilestone: String(p.nextMilestone || ""),
-    eta: String(p.eta || ""),
-    sortOrder: Number(p.sortOrder) || i + 1,
-  };
+/* ===========================================================
+   Drag state (single shared registry to support cross-area moves)
+   =========================================================== */
+const DragCtx = React.createContext(null);
+
+function useDragController() {
+  const [drag, setDrag] = React.useState(null); // { kind:'project'|'area'|'item', projectId?, sectionKey?, areaId?, itemId? }
+  return [drag, setDrag];
 }
 
-const { useState, useEffect, useCallback, useRef, useMemo } = React;
+/* ===========================================================
+   COMPONENTS
+   =========================================================== */
+const { useState, useEffect, useCallback, useRef, useMemo, useContext, useLayoutEffect } = React;
 
-function StatusPill({ value, onChange }) {
-  const m = STATUS_META[value] || STATUS_META["On track"];
+/* ----- Toast ----- */
+function Toast({ toast }) {
   return (
-    <div style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
-      <div style={{position:"absolute",left:10,width:8,height:8,borderRadius:"50%",background:m.dot,pointerEvents:"none",zIndex:1}}/>
+    <div className={`toast${toast.show?" show":""}`}
+      style={{background: toast.ok ? "#0F172A" : "#EF4444"}}
+      role="status" aria-live="polite">
+      {toast.msg}
+    </div>
+  );
+}
+
+/* ----- Status pill (project) ----- */
+function ProjectStatusPill({ value, onChange }) {
+  const m = PROJECT_STATUS_META[value] || PROJECT_STATUS_META["On track"];
+  return (
+    <div style={{position:"relative", display:"inline-flex", alignItems:"center"}}>
+      <div style={{position:"absolute", left:10, width:8, height:8, borderRadius:"50%", background:m.dot, pointerEvents:"none"}}/>
       <select value={value} onChange={e=>onChange(e.target.value)}
-        style={{background:m.bg,color:m.text,border:"none",borderRadius:20,padding:"6px 14px 6px 24px",fontSize:12,fontWeight:700,outline:"none",cursor:"pointer"}}>
-        {STATUS_OPTIONS.map(o=><option key={o} value={o}>{o}</option>)}
+        aria-label="Project status"
+        style={{background:m.bg, color:m.text, border:"none", borderRadius:20, padding:"6px 28px 6px 24px", fontSize:12, fontWeight:700, outline:"none"}}>
+        {PROJECT_STATUSES.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
   );
 }
 
-function AutoTextarea({ value, onChange, placeholder, minRows=2 }) {
+/* ----- Item status menu ----- */
+function ItemStatusBadge({ value, onChange }) {
+  const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useEffect(()=>{
-    if (!ref.current) return;
-    ref.current.style.height = "auto";
-    ref.current.style.height = Math.max(ref.current.scrollHeight, minRows*22+18) + "px";
-  }, [value, minRows]);
+  const m = ITEM_STATUS_META[value] || ITEM_STATUS_META.pending;
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
   return (
-    <textarea ref={ref} className="field-input" rows={minRows}
-      placeholder={placeholder} value={value}
-      onChange={e=>onChange(e.target.value)}
-      style={{lineHeight:"1.5",overflow:"hidden",whiteSpace:"pre-wrap"}}/>
-  );
-}
-
-function Section({ label, children }) {
-  return (
-    <div style={{marginTop:14}}>
-      <div className="field-label">{label}</div>
-      {children}
+    <div ref={ref} style={{position:"relative"}}>
+      <button type="button" onClick={()=>setOpen(o=>!o)}
+        aria-label={`Status: ${m.label}. Click to change.`}
+        className="focus-ring"
+        style={{display:"inline-flex", alignItems:"center", gap:6, background:m.bg, color:m.text,
+          borderRadius:14, padding:"3px 9px", fontSize:11, fontWeight:700, minWidth:96, justifyContent:"flex-start"}}>
+        <span style={{fontSize:12, lineHeight:1}}>{m.icon}</span>
+        <span style={{whiteSpace:"nowrap"}}>{m.label}</span>
+      </button>
+      {open && (
+        <div className="menu card" style={{position:"absolute", zIndex:30, top:"calc(100% + 4px)", left:0, padding:4, minWidth:160}}>
+          {ITEM_STATUSES.map(s => {
+            const sm = ITEM_STATUS_META[s];
+            return (
+              <button key={s} type="button"
+                onClick={()=>{ onChange(s); setOpen(false); }}
+                style={{display:"flex", alignItems:"center", gap:8, width:"100%", padding:"7px 9px", borderRadius:6,
+                  background:s===value?"#F1F5F9":"transparent", color:"#0F172A", fontSize:12, fontWeight:600, textAlign:"left"}}>
+                <span style={{display:"inline-flex", width:18, height:18, borderRadius:"50%", background:sm.bg, color:sm.text, alignItems:"center", justifyContent:"center", fontSize:11}}>{sm.icon}</span>
+                {sm.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function ProjectCard({ project, onChange, onDelete, dragHandlers, dragging }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const set = (field) => (v) => onChange({ ...project, [field]: v });
+/* ----- Inline editable text (single-line, grows naturally) ----- */
+function InlineText({ value, onChange, placeholder, style, multiline=false, ariaLabel, onEnter }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    if (multiline && ref.current) {
+      ref.current.style.height = "auto";
+      ref.current.style.height = ref.current.scrollHeight + "px";
+    }
+  }, [value, multiline]);
+  if (multiline) {
+    return (
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={e=>onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        rows={1}
+        style={{
+          width:"100%", border:"1px solid transparent", background:"transparent",
+          padding:"4px 6px", borderRadius:6, fontSize:13, lineHeight:1.5,
+          color:"#0F172A", outline:"none", fontFamily:"inherit", overflow:"hidden",
+          ...style,
+        }}
+        onFocus={e=>{ e.target.style.borderColor="#E2E8F0"; e.target.style.background="#fff"; }}
+        onBlur ={e=>{ e.target.style.borderColor="transparent"; e.target.style.background="transparent"; }}
+        onKeyDown={e=>{
+          if (e.key === "Enter" && !e.shiftKey && onEnter) { e.preventDefault(); onEnter(); }
+        }}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={e=>onChange(e.target.value)}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      style={{
+        width:"100%", border:"1px solid transparent", background:"transparent",
+        padding:"4px 6px", borderRadius:6, fontSize:13, color:"#0F172A", outline:"none",
+        fontFamily:"inherit",
+        ...style,
+      }}
+      onFocus={e=>{ e.target.style.borderColor="#E2E8F0"; e.target.style.background="#fff"; }}
+      onBlur ={e=>{ e.target.style.borderColor="transparent"; e.target.style.background="transparent"; }}
+      onKeyDown={e=>{ if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(); } }}
+    />
+  );
+}
+
+/* ----- Collapse caret ----- */
+function CollapseCaret({ open, onClick, label }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} aria-expanded={open}
+      className="icon-btn focus-ring"
+      style={{display:"inline-flex", alignItems:"center", justifyContent:"center", width:20, height:20, color:"#64748B"}}>
+      <span style={{display:"inline-block", transform:open?"rotate(90deg)":"none", transition:"transform .15s", fontSize:11}}>▶</span>
+    </button>
+  );
+}
+
+/* ===========================================================
+   Item row
+   =========================================================== */
+function ItemRow({ projectId, sectionKey, areaId, item, onChange, onDelete, onDuplicate }) {
+  const [drag, setDrag] = useContext(DragCtx);
+  const [dropPos, setDropPos] = useState(null); // 'before' | 'after' | null
+  const isDragSrc = drag?.kind==='item' && drag.itemId === item.id;
+
+  const dragStart = (e) => {
+    setDrag({ kind:'item', projectId, sectionKey, areaId, itemId: item.id });
+    e.dataTransfer.effectAllowed = 'move';
+    // Firefox requires data
+    try { e.dataTransfer.setData('text/plain', item.id); } catch {}
+  };
+  const dragOver = (e) => {
+    if (drag?.kind !== 'item') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height/2;
+    setDropPos(before ? 'before' : 'after');
+  };
+  const dragLeave = () => setDropPos(null);
+  const drop = (e) => {
+    if (drag?.kind !== 'item') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = dropPos;
+    setDropPos(null);
+    window.__pcDrop?.({ targetKind:'item', projectId, sectionKey, areaId, itemId: item.id, position: pos });
+  };
+
   return (
     <div
-      draggable={dragging}
-      onDragStart={dragHandlers.onDragStart(project.id)}
-      onDragOver={dragHandlers.onDragOver}
-      onDrop={dragHandlers.onDrop(project.id)}
-      onDragEnd={dragHandlers.onDragEnd}
-      className="card"
-      style={{padding:"20px 24px",marginBottom:16}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+      draggable
+      onDragStart={dragStart}
+      onDragOver={dragOver}
+      onDragLeave={dragLeave}
+      onDrop={drop}
+      onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
+      className={`${isDragSrc ? 'ghost' : ''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
+      style={{
+        display:"grid", gridTemplateColumns:"20px 110px 1fr auto auto", gap:8,
+        alignItems:"center", padding:"6px 8px", borderRadius:8,
+        transition:"background .15s",
+      }}
+      onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+      onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+    >
+      <span className="grip" aria-hidden="true" title="Drag to reorder">⠿</span>
+      <ItemStatusBadge value={item.status} onChange={(s)=>onChange({ ...item, status: s })}/>
+      <InlineText
+        value={item.text}
+        onChange={(t)=>onChange({ ...item, text: t })}
+        placeholder="Describe this item…"
+        ariaLabel="Item text"
+        multiline
+      />
+      <InlineText
+        value={item.owner}
+        onChange={(o)=>onChange({ ...item, owner: o })}
+        placeholder="Owner"
+        ariaLabel="Owner"
+        style={{
+          width:90, fontSize:12, color:"#475569", background:"#F1F5F9",
+          borderRadius:12, padding:"4px 10px", textAlign:"center",
+        }}
+      />
+      <div style={{display:"flex", gap:2}}>
+        <button type="button" className="icon-btn focus-ring" onClick={onDuplicate} aria-label="Duplicate item" title="Duplicate">
+          <span style={{fontSize:12}}>⎘</span>
+        </button>
+        <button type="button" className="icon-btn danger focus-ring" onClick={onDelete} aria-label="Delete item" title="Delete">
+          <span style={{fontSize:13}}>×</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ===========================================================
+   Area block
+   =========================================================== */
+function AreaBlock({ projectId, sectionKey, area, onChange, onDelete }) {
+  const [drag, setDrag] = useContext(DragCtx);
+  const [dropPos, setDropPos] = useState(null); // 'before' | 'after' | 'into' | null
+
+  const isDragSrc = drag?.kind==='area' && drag.areaId === area.id;
+  const dragStart = (e) => {
+    setDrag({ kind:'area', projectId, sectionKey, areaId: area.id });
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', area.id); } catch {}
+    e.stopPropagation();
+  };
+  const dragOver = (e) => {
+    if (!drag) return;
+    e.preventDefault();
+    if (drag.kind === 'item') {
+      // Allow dropping onto empty area body
+      if (area.items.length === 0) {
+        setDropPos('into');
+      }
+      return;
+    }
+    if (drag.kind !== 'area') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height/2;
+    setDropPos(before ? 'before' : 'after');
+  };
+  const dragLeave = () => setDropPos(null);
+  const drop = (e) => {
+    if (!drag) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = dropPos;
+    setDropPos(null);
+    if (drag.kind === 'item' && pos === 'into') {
+      window.__pcDrop?.({ targetKind:'area-empty', projectId, sectionKey, areaId: area.id });
+    } else if (drag.kind === 'area') {
+      window.__pcDrop?.({ targetKind:'area', projectId, sectionKey, areaId: area.id, position: pos });
+    }
+  };
+
+  const setName = (name) => onChange({ ...area, name });
+  const toggleCollapsed = () => onChange({ ...area, collapsed: !area.collapsed });
+
+  const updateItem = (i, updated) => onChange({ ...area, items: area.items.map((it, idx) => idx === i ? updated : it) });
+  const deleteItem = (i) => onChange({ ...area, items: area.items.filter((_, idx) => idx !== i) });
+  const duplicateItem = (i) => {
+    const src = area.items[i];
+    const dup = { ...src, id: gid("i") };
+    const next = [...area.items];
+    next.splice(i+1, 0, dup);
+    onChange({ ...area, items: next });
+  };
+  const addItem = () => {
+    onChange({ ...area, collapsed: false, items: [...area.items, emptyItem()] });
+  };
+
+  const counts = useMemo(() => {
+    const done = area.items.filter(i => i.status === "done").length;
+    return { done, total: area.items.length };
+  }, [area.items]);
+
+  return (
+    <div
+      draggable
+      onDragStart={dragStart}
+      onDragOver={dragOver}
+      onDragLeave={dragLeave}
+      onDrop={drop}
+      onDragEnd={()=>{ setDrag(null); setDropPos(null); }}
+      className={`${isDragSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${dropPos==='into'?'drop-into':''}`}
+      style={{
+        border:"1px solid #E2E8F0", borderRadius:10, marginBottom:8, background:"#fff",
+      }}
+    >
+      <div style={{display:"flex", alignItems:"center", gap:6, padding:"8px 10px"}}>
+        <span className="grip" aria-hidden="true" title="Drag to reorder area">⠿</span>
+        <CollapseCaret open={!area.collapsed} onClick={toggleCollapsed}
+          label={area.collapsed ? "Expand area" : "Collapse area"}/>
+        <InlineText
+          value={area.name}
+          onChange={setName}
+          placeholder="Area name (e.g. N8N, Email Copy)"
+          ariaLabel="Area name"
+          style={{fontWeight:700, fontSize:13, color:"#0F172A"}}
+        />
+        {counts.total > 0 && (
+          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600, whiteSpace:"nowrap"}}>
+            {counts.done}/{counts.total} done
+          </span>
+        )}
+        <button type="button" onClick={addItem}
+          className="focus-ring"
+          style={{fontSize:11, fontWeight:700, color:"#6366F1", padding:"4px 10px", borderRadius:6, background:"#EEF2FF", whiteSpace:"nowrap"}}>
+          + Item
+        </button>
+        <button type="button" onClick={onDelete} className="icon-btn danger focus-ring" aria-label="Delete area" title="Delete area">
+          <span style={{fontSize:13}}>×</span>
+        </button>
+      </div>
+      {!area.collapsed && (
+        <div style={{padding:"0 8px 8px 8px"}}>
+          {area.items.length === 0 && (
+            <div style={{fontSize:12, color:"#94A3B8", padding:"8px 10px", fontStyle:"italic"}}>
+              No items yet — click <strong>+ Item</strong> or drop an item here.
+            </div>
+          )}
+          {area.items.map((it, i) => (
+            <ItemRow key={it.id}
+              projectId={projectId} sectionKey={sectionKey} areaId={area.id}
+              item={it}
+              onChange={(updated)=>updateItem(i, updated)}
+              onDelete={()=>deleteItem(i)}
+              onDuplicate={()=>duplicateItem(i)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================================================
+   Section block
+   =========================================================== */
+function SectionBlock({ projectId, sectionKey, label, emptyHint, areas, onChange, collapsed, onToggleCollapsed }) {
+  const [drag, setDrag] = useContext(DragCtx);
+  const [dropEmpty, setDropEmpty] = useState(false);
+
+  const updateArea = (i, updated) => onChange(areas.map((a, idx) => idx === i ? updated : a));
+  const deleteArea = (i) => onChange(areas.filter((_, idx) => idx !== i));
+  const addArea = () => onChange([...areas, emptyArea("New area")]);
+
+  const counts = useMemo(() => {
+    const all = areas.flatMap(a => a.items);
+    return { done: all.filter(i => i.status==="done").length, total: all.length };
+  }, [areas]);
+
+  const sectionDragOver = (e) => {
+    if (!drag) return;
+    if (drag.kind === 'item' && areas.length === 0) {
+      e.preventDefault();
+      setDropEmpty(true);
+    }
+  };
+  const sectionDrop = (e) => {
+    if (!drag) return;
+    if (drag.kind === 'item' && areas.length === 0) {
+      e.preventDefault();
+      setDropEmpty(false);
+      // create an area + drop item into it
+      window.__pcDrop?.({ targetKind:'section-empty', projectId, sectionKey });
+    }
+  };
+
+  return (
+    <div style={{marginTop:18}}>
+      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:8}}>
+        <CollapseCaret open={!collapsed} onClick={onToggleCollapsed}
+          label={collapsed?"Expand section":"Collapse section"}/>
+        <div style={{fontSize:11, fontWeight:800, letterSpacing:".08em", color:"#64748B", textTransform:"uppercase"}}>{label}</div>
+        {counts.total > 0 && (
+          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600}}>· {counts.done}/{counts.total}</span>
+        )}
+        <div style={{flex:1}}/>
+        <button type="button" onClick={addArea}
+          className="focus-ring"
+          style={{fontSize:11, fontWeight:700, color:"#475569", padding:"5px 12px", borderRadius:6, background:"#F1F5F9"}}>
+          + Area
+        </button>
+      </div>
+      {!collapsed && (
+        <div onDragOver={sectionDragOver} onDragLeave={()=>setDropEmpty(false)} onDrop={sectionDrop}>
+          {areas.length === 0 ? (
+            <div
+              className={dropEmpty ? "drop-into" : ""}
+              style={{padding:"18px", borderRadius:10, border:"1px dashed #CBD5E1",
+                color:"#94A3B8", fontSize:12, textAlign:"center", background:"#F8FAFC"}}>
+              {emptyHint}
+            </div>
+          ) : (
+            areas.map((a, i) => (
+              <AreaBlock key={a.id}
+                projectId={projectId} sectionKey={sectionKey}
+                area={a}
+                onChange={(updated)=>updateArea(i, updated)}
+                onDelete={()=>deleteArea(i)}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================================================
+   Project card
+   =========================================================== */
+function ProjectCard({ project, onChange, onDelete }) {
+  const [drag, setDrag] = useContext(DragCtx);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [dropPos, setDropPos] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [collapsedCard, setCollapsedCard] = useState(false);
+  const handleRef = useRef(null);
+  const [dragArmed, setDragArmed] = useState(false);
+
+  const set = (field) => (v) => onChange({ ...project, [field]: v });
+
+  const dragStart = (e) => {
+    if (!dragArmed) { e.preventDefault(); return; }
+    setDrag({ kind:'project', projectId: project.id });
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', project.id); } catch {}
+  };
+  const dragOver = (e) => {
+    if (drag?.kind !== 'project') return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height/2;
+    setDropPos(before ? 'before' : 'after');
+  };
+  const dragLeave = () => setDropPos(null);
+  const drop = (e) => {
+    if (drag?.kind !== 'project') return;
+    e.preventDefault();
+    const pos = dropPos;
+    setDropPos(null);
+    window.__pcDrop?.({ targetKind:'project', projectId: project.id, position: pos });
+  };
+
+  const isSrc = drag?.kind==='project' && drag.projectId === project.id;
+  const totalItems = (project.whatsBeenDone||[]).concat(project.workingOnNow||[], project.blockers||[])
+    .reduce((acc,a)=>acc + (a.items?.length||0), 0);
+
+  return (
+    <div
+      draggable={dragArmed}
+      onDragStart={dragStart}
+      onDragOver={dragOver}
+      onDragLeave={dragLeave}
+      onDrop={drop}
+      onDragEnd={()=>{ setDrag(null); setDropPos(null); setDragArmed(false); }}
+      className={`card ${isSrc?'ghost':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
+      style={{padding:"18px 22px", marginBottom:18}}>
+      <div style={{display:"flex", alignItems:"center", gap:10, flexWrap:"wrap"}}>
         <span
-          onMouseDown={()=>dragHandlers.setDragging(true)}
-          onMouseUp={()=>dragHandlers.setDragging(false)}
-          title="Drag to reorder"
-          style={{color:"#CBD5E1",fontSize:18,cursor:"grab",userSelect:"none",lineHeight:1,padding:"0 4px"}}>⠿</span>
-        <input
-          value={project.name}
-          onChange={e=>set("name")(e.target.value)}
+          ref={handleRef}
+          className="grip"
+          onMouseDown={()=>setDragArmed(true)}
+          onMouseUp={()=>setDragArmed(false)}
+          title="Drag to reorder project"
+          aria-label="Drag handle"
+          style={{fontSize:18, padding:"0 4px"}}>⠿</span>
+        <CollapseCaret open={!collapsedCard} onClick={()=>setCollapsedCard(c=>!c)}
+          label={collapsedCard ? "Expand project" : "Collapse project"}/>
+        <InlineText value={project.name} onChange={set("name")}
           placeholder="Project name"
-          style={{flex:1,minWidth:200,fontSize:18,fontWeight:700,border:"none",outline:"none",background:"transparent",padding:"4px 6px",borderRadius:6,color:"#0F172A"}}
-          onFocus={e=>e.target.style.background="#F8FAFC"}
-          onBlur={e=>e.target.style.background="transparent"}/>
-        <StatusPill value={project.status} onChange={set("status")}/>
+          ariaLabel="Project name"
+          style={{flex:1, minWidth:180, fontSize:17, fontWeight:800, color:"#0F172A", padding:"4px 8px"}}
+        />
+        <ProjectStatusPill value={project.status} onChange={set("status")}/>
+        {totalItems > 0 && (
+          <span style={{fontSize:11, color:"#94A3B8", fontWeight:600}}>{totalItems} items</span>
+        )}
         {confirmDelete ? (
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{fontSize:12,color:"#64748B"}}>Delete?</span>
-            <button onClick={()=>{onDelete(project.id);setConfirmDelete(false);}}
-              style={{background:"#EF4444",color:"#fff",border:"none",borderRadius:6,padding:"5px 10px",fontSize:12,fontWeight:600}}>Yes</button>
-            <button onClick={()=>setConfirmDelete(false)}
-              style={{background:"#F1F5F9",color:"#475569",border:"none",borderRadius:6,padding:"5px 10px",fontSize:12,fontWeight:600}}>No</button>
+          <div style={{display:"flex", gap:6, alignItems:"center"}}>
+            <span style={{fontSize:12, color:"#64748B"}}>Delete?</span>
+            <button type="button" onClick={()=>{onDelete(project.id); setConfirmDelete(false);}}
+              style={{background:"#EF4444", color:"#fff", borderRadius:6, padding:"5px 10px", fontSize:12, fontWeight:700}}>Yes</button>
+            <button type="button" onClick={()=>setConfirmDelete(false)}
+              style={{background:"#F1F5F9", color:"#475569", borderRadius:6, padding:"5px 10px", fontSize:12, fontWeight:700}}>No</button>
           </div>
         ) : (
-          <button onClick={()=>setConfirmDelete(true)} title="Delete project"
-            style={{background:"none",border:"none",fontSize:16,color:"#CBD5E1",padding:6,borderRadius:6}}>🗑️</button>
+          <button type="button" onClick={()=>setConfirmDelete(true)} title="Delete project"
+            className="icon-btn danger focus-ring" aria-label="Delete project">🗑️</button>
         )}
       </div>
 
-      <Section label="What's been done">
-        <AutoTextarea value={project.whatsBeenDone} onChange={set("whatsBeenDone")}
-          placeholder="Everything that's been shipped, built, or completed for this project…" minRows={3}/>
-      </Section>
+      {!collapsedCard && (
+        <>
+          {SECTIONS.map(s => (
+            <SectionBlock key={s.key}
+              projectId={project.id}
+              sectionKey={s.key}
+              label={s.label}
+              emptyHint={s.emptyHint}
+              areas={project[s.key] || []}
+              collapsed={!!collapsedSections[s.key]}
+              onToggleCollapsed={()=>setCollapsedSections(c=>({...c, [s.key]: !c[s.key]}))}
+              onChange={(next)=>onChange({ ...project, [s.key]: next })}
+            />
+          ))}
 
-      <Section label="Working on now">
-        <AutoTextarea value={project.workingOnNow} onChange={set("workingOnNow")}
-          placeholder="Active work in flight." minRows={2}/>
-      </Section>
-
-      <Section label="Blockers or need from you">
-        <AutoTextarea value={project.blockers} onChange={set("blockers")}
-          placeholder="What's blocking progress or needs input from someone else." minRows={2}/>
-      </Section>
-
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12,marginTop:14}}>
-        <div>
-          <div className="field-label">Next milestone</div>
-          <input className="field-input" value={project.nextMilestone}
-            onChange={e=>set("nextMilestone")(e.target.value)}
-            placeholder="The next visible deliverable."/>
-        </div>
-        <div>
-          <div className="field-label">ETA</div>
-          <input className="field-input" value={project.eta}
-            onChange={e=>set("eta")(e.target.value)}
-            placeholder="e.g. Fri / Mar 4 / 2w"/>
-        </div>
-      </div>
+          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:12, marginTop:18}}>
+            <div>
+              <div className="field-label">Next milestone</div>
+              <input className="field-input" value={project.nextMilestone}
+                onChange={e=>set("nextMilestone")(e.target.value)}
+                placeholder="The next visible deliverable."/>
+            </div>
+            <div>
+              <div className="field-label">ETA</div>
+              <input className="field-input" value={project.eta}
+                onChange={e=>set("eta")(e.target.value)}
+                placeholder="e.g. Fri / Mar 4 / 2w"/>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
+/* ===========================================================
+   App
+   =========================================================== */
 function App() {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady]   = useState(false);
   const [projects, setProjects] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState({ show:false, msg:"", ok:true });
-  const [dragId, setDragId] = useState(null);
-  const [dragging, setDragging] = useState(false);
+  const [toast, setToast]   = useState({ show:false, msg:"", ok:true });
   const [sourceMsg, setSourceMsg] = useState("");
   const saveTimer = useRef(null);
+  const dragState = useDragController();
 
   const flash = (msg, ok=true) => {
-    setToast({show:true,msg,ok});
-    setTimeout(()=>setToast(t=>({...t,show:false})), 2200);
+    setToast({show:true, msg, ok});
+    setTimeout(()=>setToast(t=>({...t, show:false})), 2200);
   };
 
+  /* ---------- initial load ---------- */
   useEffect(() => {
     (async () => {
       try {
         const remote = await apiLoad();
         if (remote && remote.length) {
-          const norm = remote.map(normalize).sort((a,b)=>a.sortOrder-b.sortOrder);
+          const norm = remote.map(normalizeProject).sort((a,b)=>a.sortOrder-b.sortOrder);
           setProjects(norm);
           saveLocal(norm);
           setSourceMsg("Synced from Google Sheets");
         } else {
           const local = loadLocal();
           if (local && local.length) {
-            setProjects(local);
+            setProjects(local.map(normalizeProject));
             setSourceMsg("Loaded from local backup (sheet empty)");
           } else {
-            const seed = [{ ...EMPTY_PROJECT(), name: "Ai Avatar", sortOrder: 1 }];
+            const seed = [{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }];
             setProjects(seed);
             setSourceMsg("Started a fresh project");
           }
@@ -242,11 +844,11 @@ function App() {
       } catch (e) {
         const local = loadLocal();
         if (local && local.length) {
-          setProjects(local);
+          setProjects(local.map(normalizeProject));
           setSourceMsg("Offline — using local backup");
           flash("⚠️ Couldn't reach n8n — working offline", false);
         } else {
-          const seed = [{ ...EMPTY_PROJECT(), name: "Ai Avatar", sortOrder: 1 }];
+          const seed = [{ ...emptyProject(), name: "Ai Avatar", sortOrder: 1 }];
           setProjects(seed);
           setSourceMsg("Offline — starting fresh");
           flash("⚠️ Couldn't reach n8n — working offline", false);
@@ -256,6 +858,7 @@ function App() {
     })();
   }, []);
 
+  /* ---------- persistence ---------- */
   const persist = useCallback((next) => {
     saveLocal(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -264,7 +867,7 @@ function App() {
       try {
         await apiSave(next);
         flash("✓ Saved");
-      } catch (e) {
+      } catch {
         flash("✗ Sheet save failed (kept local copy)", false);
       } finally {
         setSaving(false);
@@ -279,102 +882,172 @@ function App() {
   };
 
   const deleteProject = (id) => {
-    const next = projects.filter(p => p.id !== id).map((p,i)=>({...p,sortOrder:i+1}));
+    const next = projects.filter(p => p.id !== id).map((p,i)=>({...p, sortOrder: i+1}));
     setProjects(next);
     persist(next);
   };
 
   const addProject = () => {
-    const next = [...projects, { ...EMPTY_PROJECT(), sortOrder: projects.length + 1 }];
+    const next = [...projects, { ...emptyProject(), sortOrder: projects.length + 1 }];
     setProjects(next);
     persist(next);
-    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
+    setTimeout(()=>window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
   };
 
-  const dragHandlers = useMemo(() => ({
-    setDragging,
-    onDragStart: id => e => { setDragId(id); e.dataTransfer.effectAllowed = "move"; },
-    onDragOver: e => { e.preventDefault(); e.currentTarget.classList.add("drag-over"); },
-    onDrop: targetId => e => {
-      e.preventDefault();
-      e.currentTarget.classList.remove("drag-over");
-      if (dragId === targetId || !dragId) return;
-      const fi = projects.findIndex(p => p.id === dragId);
-      const ti = projects.findIndex(p => p.id === targetId);
-      if (fi < 0 || ti < 0) return;
-      const next = [...projects];
-      const [m] = next.splice(fi, 1);
-      next.splice(ti, 0, m);
-      const renumbered = next.map((p,i)=>({...p,sortOrder:i+1}));
-      setProjects(renumbered);
-      persist(renumbered);
-    },
-    onDragEnd: e => {
-      setDragId(null);
-      setDragging(false);
-      document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
-    },
-  }), [dragId, projects, persist]);
+  /* ---------- drag drop dispatcher (cross-area moves) ---------- */
+  useEffect(() => {
+    window.__pcDrop = (target) => {
+      const drag = dragState[0];
+      if (!drag) return;
+      const next = JSON.parse(JSON.stringify(projects));
+
+      const findProject = (pid) => next.find(p => p.id === pid);
+      const removeItem = (pid, sectionKey, itemId) => {
+        const p = findProject(pid);
+        if (!p) return null;
+        for (const a of p[sectionKey] || []) {
+          const idx = a.items.findIndex(i => i.id === itemId);
+          if (idx >= 0) {
+            const [it] = a.items.splice(idx, 1);
+            return it;
+          }
+        }
+        return null;
+      };
+
+      if (drag.kind === 'project' && target.targetKind === 'project') {
+        if (drag.projectId === target.projectId) return;
+        const fromIdx = next.findIndex(p => p.id === drag.projectId);
+        let toIdx = next.findIndex(p => p.id === target.projectId);
+        if (fromIdx < 0 || toIdx < 0) return;
+        const [m] = next.splice(fromIdx, 1);
+        toIdx = next.findIndex(p => p.id === target.projectId);
+        const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
+        next.splice(insertAt, 0, m);
+        next.forEach((p,i) => p.sortOrder = i+1);
+      }
+
+      else if (drag.kind === 'area' && target.targetKind === 'area') {
+        if (drag.projectId !== target.projectId) return; // areas stay within project
+        const p = findProject(drag.projectId);
+        // areas only reorder within same section
+        if (drag.sectionKey !== target.sectionKey) return;
+        const list = p[drag.sectionKey];
+        const fromIdx = list.findIndex(a => a.id === drag.areaId);
+        let toIdx = list.findIndex(a => a.id === target.areaId);
+        if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+        const [m] = list.splice(fromIdx, 1);
+        toIdx = list.findIndex(a => a.id === target.areaId);
+        const insertAt = toIdx + (target.position === 'after' ? 1 : 0);
+        list.splice(insertAt, 0, m);
+      }
+
+      else if (drag.kind === 'item') {
+        const moved = removeItem(drag.projectId, drag.sectionKey, drag.itemId);
+        if (!moved) return;
+
+        if (target.targetKind === 'item') {
+          const p = findProject(target.projectId);
+          const list = p[target.sectionKey];
+          const area = list.find(a => a.id === target.areaId);
+          if (!area) return;
+          const idx = area.items.findIndex(i => i.id === target.itemId);
+          const insertAt = idx + (target.position === 'after' ? 1 : 0);
+          area.items.splice(insertAt, 0, moved);
+        } else if (target.targetKind === 'area-empty') {
+          const p = findProject(target.projectId);
+          const list = p[target.sectionKey];
+          const area = list.find(a => a.id === target.areaId);
+          if (!area) return;
+          area.items.push(moved);
+        } else if (target.targetKind === 'section-empty') {
+          const p = findProject(target.projectId);
+          const list = p[target.sectionKey];
+          const area = emptyArea("New area");
+          area.items.push(moved);
+          list.push(area);
+        }
+      }
+
+      setProjects(next);
+      persist(next);
+    };
+    return () => { delete window.__pcDrop; };
+  }, [projects, persist, dragState]);
+
+  /* ---------- import / export ---------- */
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(projects, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `project-central-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (!ready) return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",color:"#94A3B8",fontSize:14,gap:12}}>
-      <div style={{width:32,height:32,border:"3px solid #E2E8F0",borderTop:"3px solid #6366F1",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+    <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", color:"#94A3B8", fontSize:14, gap:12}}>
+      <div style={{width:32, height:32, border:"3px solid #E2E8F0", borderTop:"3px solid #6366F1", borderRadius:"50%", animation:"spin 1s linear infinite"}}/>
       Loading from Google Sheets…
     </div>
   );
 
-  const statusCounts = STATUS_OPTIONS.reduce((acc,s)=>{ acc[s]=projects.filter(p=>p.status===s).length; return acc; }, {});
+  const statusCounts = PROJECT_STATUSES.reduce((acc,s)=>{ acc[s]=projects.filter(p=>p.status===s).length; return acc; }, {});
 
   return (
-    <div style={{minHeight:"100vh",padding:"28px 20px 60px"}}>
-      <div className={`toast${toast.show?" show":""}`} style={{background:toast.ok?"#0F172A":"#EF4444"}}>{toast.msg}</div>
+    <DragCtx.Provider value={dragState}>
+      <div style={{minHeight:"100vh", padding:"28px 20px 80px"}}>
+        <Toast toast={toast}/>
 
-      <div style={{maxWidth:880,margin:"0 auto 24px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:8}}>
-          <div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-.02em"}}>Project Central</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginTop:4}}>
-              {projects.length} project{projects.length===1?"":"s"} · {saving ? "saving…" : "all changes saved"}
-              {sourceMsg && <span style={{marginLeft:8,color:"#CBD5E1"}}>· {sourceMsg}</span>}
+        <div style={{maxWidth:960, margin:"0 auto 24px"}}>
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:8}}>
+            <div>
+              <div style={{fontSize:24, fontWeight:800, letterSpacing:"-.02em"}}>Project Central</div>
+              <div style={{fontSize:12, color:"#94A3B8", marginTop:4}}>
+                {projects.length} project{projects.length===1?"":"s"} · {saving ? "saving…" : "all changes saved"}
+                {sourceMsg && <span style={{marginLeft:8, color:"#CBD5E1"}}>· {sourceMsg}</span>}
+              </div>
+            </div>
+            <div style={{display:"flex", gap:8, alignItems:"center"}}>
+              <button type="button" onClick={exportJson}
+                style={{fontSize:12, color:"#475569", padding:"6px 12px", borderRadius:8, border:"1px solid #E2E8F0", background:"#fff", fontWeight:600}}>
+                ⬇ Export JSON
+              </button>
+              <a href={SHEET_URL} target="_blank" rel="noreferrer"
+                style={{fontSize:12, color:"#6366F1", textDecoration:"none", padding:"6px 12px", borderRadius:8, border:"1px solid #E2E8F0", background:"#fff", fontWeight:600}}>
+                📊 Sheet
+              </a>
+              <button type="button" onClick={addProject}
+                style={{background:"#6366F1", color:"#fff", borderRadius:8, padding:"9px 16px", fontSize:13, fontWeight:700}}>+ Add Project</button>
             </div>
           </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <a href={SHEET_URL} target="_blank" rel="noreferrer"
-              style={{fontSize:12,color:"#6366F1",textDecoration:"none",padding:"6px 12px",borderRadius:8,border:"1px solid #E2E8F0",background:"#fff",fontWeight:600}}>
-              📊 Sheet
-            </a>
-            <button onClick={addProject}
-              style={{background:"#6366F1",color:"#fff",border:"none",borderRadius:8,padding:"9px 16px",fontSize:13,fontWeight:600}}>+ Add Project</button>
+
+          <div style={{display:"flex", gap:8, flexWrap:"wrap", marginBottom:20}}>
+            {PROJECT_STATUSES.map(s => {
+              const m = PROJECT_STATUS_META[s];
+              const n = statusCounts[s];
+              if (!n) return null;
+              return (
+                <div key={s} style={{display:"inline-flex", alignItems:"center", gap:6, background:m.bg, color:m.text, padding:"4px 10px", borderRadius:14, fontSize:11, fontWeight:700}}>
+                  <span style={{width:7, height:7, borderRadius:"50%", background:m.dot}}/>
+                  {s} · {n}
+                </div>
+              );
+            })}
           </div>
+
+          {projects.map(p => (
+            <ProjectCard key={p.id} project={p} onChange={updateProject} onDelete={deleteProject}/>
+          ))}
+
+          {projects.length === 0 && (
+            <div className="card" style={{padding:40, textAlign:"center", color:"#94A3B8", fontSize:14}}>
+              No projects yet. Click <strong>+ Add Project</strong> to get started.
+            </div>
+          )}
         </div>
-
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
-          {STATUS_OPTIONS.map(s => {
-            const m = STATUS_META[s];
-            const n = statusCounts[s];
-            if (!n) return null;
-            return (
-              <div key={s} style={{display:"inline-flex",alignItems:"center",gap:6,background:m.bg,color:m.text,padding:"4px 10px",borderRadius:14,fontSize:11,fontWeight:700}}>
-                <span style={{width:7,height:7,borderRadius:"50%",background:m.dot}}/>
-                {s} · {n}
-              </div>
-            );
-          })}
-        </div>
-
-        {projects.map(p => (
-          <ProjectCard key={p.id} project={p}
-            onChange={updateProject} onDelete={deleteProject}
-            dragHandlers={dragHandlers} dragging={dragging}/>
-        ))}
-
-        {projects.length === 0 && (
-          <div className="card" style={{padding:40,textAlign:"center",color:"#94A3B8",fontSize:14}}>
-            No projects yet. Click <strong>+ Add Project</strong> to get started.
-          </div>
-        )}
       </div>
-    </div>
+    </DragCtx.Provider>
   );
 }
 
