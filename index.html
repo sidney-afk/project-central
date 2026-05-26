@@ -1635,12 +1635,12 @@ function AreaSection({ projectId, area, filter, onChange, onDelete, onDeleteItem
     return area.items.filter(i => i.status === filter);
   }, [area.items, filter]);
 
-  if (filter && filter !== "all" && filteredItems.length === 0) return null;
-
   const counts = useMemo(() => ({
     done: area.items.filter(i => i.status === "done").length,
     total: area.items.length,
   }), [area.items]);
+
+  if (filter && filter !== "all" && filteredItems.length === 0) return null;
 
   return (
     <section
