@@ -455,6 +455,20 @@ textarea { resize: none; }
   background: var(--hover); color: var(--text-muted);
 }
 
+/* Project collapse toggle */
+.project-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: var(--r-sm);
+  color: var(--text-faint);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.project-toggle:hover { background: var(--hover); color: var(--text-soft); }
+.card.collapsed { padding-bottom: 18px; }
+.card.collapsed .project-header { margin-bottom: 0; }
+
 /* Selection checkbox */
 .row-check {
   margin-top: 5px;
@@ -2152,6 +2166,7 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
   const [filter, setFilter] = useFilterForProject(project.id);
   const [dragArmed, setDragArmed] = useState(false);
   const [, , setManyCollapsed] = useCollapsed("__placeholder__");
+  const [projectCollapsed, setProjectCollapsed] = useCollapsed("project:" + project.id);
 
   const dragStart = (e) => {
     if (!dragArmed) { e.preventDefault(); return; }
@@ -2218,9 +2233,15 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
       onDragLeave={dragLeave}
       onDrop={drop}
       onDragEnd={()=>{ setDrag(null); setDropPos(null); setDragArmed(false); }}
-      className={`card ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${project.archived?'archived':''}`}
+      className={`card ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''} ${project.archived?'archived':''} ${projectCollapsed?'collapsed':''}`}
       data-project-id={project.id}>
       <div className="project-header">
+        <button type="button" className="project-toggle"
+          onClick={()=>setProjectCollapsed(!projectCollapsed)}
+          aria-label={projectCollapsed ? "Expand project" : "Collapse project"}
+          title={projectCollapsed ? "Expand" : "Collapse"}>
+          <Icon.ChevronDown style={{ width: 14, height: 14, transform: `rotate(${projectCollapsed ? -90 : 0}deg)`, transition: "transform var(--dur-fast) var(--ease)" }}/>
+        </button>
         <div className="project-grip"
           onMouseDown={()=>setDragArmed(true)}
           onMouseUp={()=>setDragArmed(false)}
@@ -2256,12 +2277,15 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
         ]}/>
       </div>
 
+      {!projectCollapsed && (
       <textarea className="project-description" rows={1}
         value={project.description || ""}
         placeholder="Add a short description for this project"
         ref={el => { if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } }}
         onChange={e=>onChange({ ...project, description: e.target.value })}/>
+      )}
 
+      {!projectCollapsed && (
       <div className="meta-row">
         <div className="meta-field">
           <label className="meta-label">Next milestone</label>
@@ -2276,11 +2300,15 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
             onChange={e=>onChange({ ...project, eta: e.target.value })}/>
         </div>
       </div>
+      )}
 
+      {!projectCollapsed && (
       <FilterBar counts={counts} active={filter} onChange={setFilter}
         onExpandAll={()=>setManyCollapsed(onAllAreaIds, false)}
         onCollapseAll={()=>setManyCollapsed(onAllAreaIds, true)}/>
+      )}
 
+      {!projectCollapsed && (
       <div className="areas">
         {(project.areas || []).map((a, i) => (
           <AreaSection key={a.id}
@@ -2303,6 +2331,7 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
