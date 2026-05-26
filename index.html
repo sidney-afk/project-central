@@ -299,8 +299,8 @@ textarea { resize: none; }
 /* Item row */
 .row {
   display: grid;
-  grid-template-columns: 16px 18px 1fr auto auto 22px;
-  gap: 10px; align-items: start;
+  grid-template-columns: 14px 16px 18px 1fr auto auto 22px;
+  gap: 8px; align-items: start;
   padding: 7px 8px;
   border-radius: var(--r);
   position: relative;
@@ -452,6 +452,72 @@ textarea { resize: none; }
   border-radius: var(--r-pill);
   background: var(--hover); color: var(--text-muted);
 }
+
+/* Selection checkbox */
+.row-check {
+  margin-top: 5px;
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--text-faint);
+  background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.row:hover .row-check,
+.row[data-selected="true"] .row-check,
+body[data-has-selection="true"] .row-check {
+  opacity: 1;
+}
+.row-check:hover { border-color: var(--text-muted); }
+.row-check[data-checked="true"] {
+  background: var(--accent); border-color: var(--accent);
+}
+.row-check[data-checked="true"] svg { color: #fff; width: 9px; height: 9px; }
+.row[data-selected="true"] {
+  background: var(--accent-soft);
+}
+.row[data-selected="true"]:hover { background: var(--accent-soft); filter: brightness(.97); }
+
+/* Bulk action bar */
+.bulk-bar {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  border-radius: var(--r-pill);
+  padding: 6px 6px 6px 16px;
+  box-shadow: var(--shadow-pop);
+  display: flex; align-items: center; gap: 4px;
+  z-index: 220;
+  animation: toastIn var(--dur) var(--ease);
+  font-size: 12.5px; font-weight: 500;
+}
+[data-theme="dark"] .bulk-bar { color: #1A1A19; }
+.bulk-bar-count {
+  padding-right: 8px;
+  border-right: 1px solid rgba(255,255,255,.18);
+  margin-right: 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="dark"] .bulk-bar-count { border-right-color: rgba(0,0,0,.18); }
+.bulk-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  color: inherit;
+  font-size: 12.5px; font-weight: 600;
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease);
+}
+.bulk-btn:hover { background: rgba(255,255,255,.10); }
+[data-theme="dark"] .bulk-btn:hover { background: rgba(0,0,0,.10); }
+.bulk-btn.danger { color: #FCA5A5; }
+.bulk-btn.danger:hover { background: rgba(248,113,113,.15); }
+.bulk-btn svg { width: 12px; height: 12px; }
 
 /* Owner avatar */
 .avatar {
@@ -1196,6 +1262,7 @@ function useViewportWidth() {
 }
 
 const CollapsedCtx = React.createContext({ map: {}, toggle: () => {}, setMany: () => {} });
+const SelectionCtx = React.createContext({ has: () => false, toggle: () => {}, clear: () => {}, count: 0 });
 
 function useCollapsedStore() {
   const [map, setMap] = useState(() => readJSON(KEY_COLLAPSED, {}));
@@ -1768,11 +1835,13 @@ function ItemText({ value, onChange, onEnter, onBackspaceEmpty, autoFocus }) {
    ============================================================ */
 function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions, dark, autoFocus, onEnter, highlight }) {
   const [drag, setDrag] = useContext(DragCtx);
+  const selection = useContext(SelectionCtx);
   const [dropPos, setDropPos] = useState(null);
   const [statusOpen, setStatusOpen] = useState(false);
   const statusBtnRef = useRef(null);
   const rowRef = useRef(null);
   const isSrc = drag?.kind === 'item' && drag.itemId === item.id;
+  const selected = selection.has(item.id);
 
   const dragStart = (e) => {
     setDrag({ kind:'item', projectId, areaId, itemId: item.id });
@@ -1806,11 +1875,19 @@ function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions
     <div
       ref={rowRef}
       data-empty-owner={!item.owner}
+      data-selected={selected}
       className={`row ${isSrc?'dragging':''} ${dropPos==='before'?'drop-before':''} ${dropPos==='after'?'drop-after':''}`}
       onDragOver={dragOver}
       onDragLeave={dragLeave}
       onDrop={drop}
       data-item-id={item.id}>
+      <button type="button" className="row-check"
+        data-checked={selected}
+        onClick={(e)=>{ e.stopPropagation(); selection.toggle(item.id, e); }}
+        aria-label={selected ? "Deselect item" : "Select item"}
+        title={selected ? "Deselect" : "Select (Shift+click for range)"}>
+        {selected && <Icon.Check/>}
+      </button>
       <div className="row-grip"
         draggable
         onDragStart={dragStart}
@@ -2188,6 +2265,62 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
 }
 
 /* ============================================================
+   Bulk action bar (multi-select)
+   ============================================================ */
+function BulkActionBar({ count, ownerSuggestions, dark, onBulkStatus, onBulkOwner, onBulkDue, onBulkDelete, onClear }) {
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [ownerOpen, setOwnerOpen] = useState(false);
+  const [dueOpen, setDueOpen] = useState(false);
+  const statusRef = useRef(null);
+  const ownerRef = useRef(null);
+  const dueRef = useRef(null);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") { onClear(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClear]);
+  return (
+    <>
+      <div className="bulk-bar" role="toolbar" aria-label="Bulk actions">
+        <span className="bulk-bar-count">{count} selected</span>
+        <button ref={statusRef} type="button" className="bulk-btn" onClick={()=>setStatusOpen(o=>!o)}>
+          Status
+        </button>
+        <button ref={ownerRef} type="button" className="bulk-btn" onClick={()=>setOwnerOpen(o=>!o)}>
+          Owner
+        </button>
+        <button ref={dueRef} type="button" className="bulk-btn" onClick={()=>setDueOpen(o=>!o)}>
+          Due
+        </button>
+        <button type="button" className="bulk-btn danger" onClick={onBulkDelete}>
+          <Icon.Trash/>Delete
+        </button>
+        <button type="button" className="bulk-btn" onClick={onClear} title="Clear (Esc)">
+          <Icon.X/>
+        </button>
+      </div>
+      {statusOpen && (
+        <StatusPopover value={null} anchorRef={statusRef}
+          onChange={(s)=>{ onBulkStatus(s); }}
+          onClose={()=>setStatusOpen(false)}/>
+      )}
+      {ownerOpen && (
+        <OwnerPopover value="" suggestions={ownerSuggestions} anchorRef={ownerRef}
+          onChange={(o)=>onBulkOwner(o)}
+          onClose={()=>setOwnerOpen(false)}/>
+      )}
+      {dueOpen && (
+        <DueDatePopover value="" anchorRef={dueRef}
+          onChange={(d)=>onBulkDue(d)}
+          onClose={()=>setDueOpen(false)}/>
+      )}
+    </>
+  );
+}
+
+/* ============================================================
    Mobile gate
    ============================================================ */
 function MobileGate() {
@@ -2231,9 +2364,15 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [highlightItemId, setHighlightItemId] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const lastSelectedRef = useRef(null);
 
   const dragState = useState(null);
   const collapsedStore = useCollapsedStore();
+
+  useEffect(() => {
+    document.body.setAttribute("data-has-selection", selectedIds.size > 0 ? "true" : "false");
+  }, [selectedIds]);
 
   /* ---- Load ---- */
   useEffect(() => {
@@ -2413,6 +2552,94 @@ function App() {
     }
   }, [persist, requestToast]);
 
+  /* ---- Multi-select bulk ops ---- */
+  const itemOrder = useMemo(() => {
+    const order = [];
+    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) {
+      order.push(it.id);
+    }
+    return order;
+  }, [projects]);
+
+  const toggleSelect = useCallback((itemId, ev) => {
+    const range = ev && ev.shiftKey;
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (range && lastSelectedRef.current && lastSelectedRef.current !== itemId) {
+        const a = itemOrder.indexOf(lastSelectedRef.current);
+        const b = itemOrder.indexOf(itemId);
+        if (a >= 0 && b >= 0) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          for (let i = lo; i <= hi; i++) next.add(itemOrder[i]);
+        }
+      } else {
+        if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+      }
+      lastSelectedRef.current = itemId;
+      return next;
+    });
+  }, [itemOrder]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    lastSelectedRef.current = null;
+  }, []);
+
+  const bulkMutate = useCallback((mutator) => {
+    setProjects(prev => {
+      const ids = selectedIds;
+      const stamp = nowISO();
+      const next = prev.map(p => ({
+        ...p,
+        areas: (p.areas||[]).map(a => ({
+          ...a,
+          items: (a.items||[]).map(it => ids.has(it.id) ? { ...mutator(it), updatedAt: stamp } : it)
+        }))
+      }));
+      persist(next);
+      return next;
+    });
+  }, [selectedIds, persist]);
+
+  const bulkDelete = useCallback(() => {
+    const ids = selectedIds;
+    if (!ids.size) return;
+    let snapshots = [];
+    setProjects(prev => {
+      const next = prev.map(p => ({
+        ...p,
+        areas: (p.areas||[]).map(a => {
+          const kept = [];
+          (a.items||[]).forEach((it, idx) => {
+            if (ids.has(it.id)) snapshots.push({ projectId: p.id, areaId: a.id, idx, item: it });
+            else kept.push(it);
+          });
+          return { ...a, items: kept };
+        })
+      }));
+      persist(next);
+      return next;
+    });
+    clearSelection();
+    if (snapshots.length) {
+      requestToast({
+        msg: `${snapshots.length} item${snapshots.length===1?"":"s"} deleted`,
+        action: { label: "Undo", onClick: () => {
+          setProjects(prev => {
+            const next = JSON.parse(JSON.stringify(prev));
+            for (const snap of snapshots) {
+              const p = next.find(x => x.id === snap.projectId);
+              const a = p?.areas.find(x => x.id === snap.areaId);
+              if (a) a.items.splice(Math.min(snap.idx, a.items.length), 0, snap.item);
+            }
+            persist(next);
+            return next;
+          });
+        } },
+      });
+    }
+  }, [selectedIds, persist, requestToast, clearSelection]);
+
   /* ---- Keyboard shortcuts ---- */
   useEffect(() => {
     const onKey = (e) => {
@@ -2466,9 +2693,25 @@ function App() {
     idle: "Ready", saving: "Saving…", saved: "Saved", error: "Save failed", offline: "Offline",
   }[syncState] || "Ready";
 
+  const selectionCtxValue = useMemo(() => ({
+    has: (id) => selectedIds.has(id),
+    toggle: toggleSelect,
+    clear: clearSelection,
+    count: selectedIds.size,
+  }), [selectedIds, toggleSelect, clearSelection]);
+
+  const ownerSuggestionsAll = useMemo(() => {
+    const s = new Set();
+    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) {
+      if (it.owner) s.add(it.owner);
+    }
+    return Array.from(s);
+  }, [projects]);
+
   return (
     <DragCtx.Provider value={dragState}>
     <CollapsedCtx.Provider value={collapsedStore}>
+    <SelectionCtx.Provider value={selectionCtxValue}>
       <div className="page">
         <header className="topbar">
           <div className="topbar-title">
@@ -2554,7 +2797,20 @@ function App() {
             onJump={jumpTo}
           />
         )}
+        {selectedIds.size > 0 && (
+          <BulkActionBar
+            count={selectedIds.size}
+            ownerSuggestions={ownerSuggestionsAll}
+            dark={dark}
+            onBulkStatus={(s)=>bulkMutate(it => ({ ...it, status: s }))}
+            onBulkOwner={(o)=>bulkMutate(it => ({ ...it, owner: o }))}
+            onBulkDue={(d)=>bulkMutate(it => ({ ...it, dueDate: d }))}
+            onBulkDelete={bulkDelete}
+            onClear={clearSelection}
+          />
+        )}
       </div>
+    </SelectionCtx.Provider>
     </CollapsedCtx.Provider>
     </DragCtx.Provider>
   );
