@@ -299,13 +299,15 @@ textarea { resize: none; }
 /* Item row */
 .row {
   display: grid;
-  grid-template-columns: 14px 16px 18px 1fr auto auto 22px;
+  grid-template-columns: 14px 16px 18px 1fr auto auto 22px 22px;
   gap: 8px; align-items: start;
   padding: 7px 8px;
   border-radius: var(--r);
   position: relative;
   transition: background var(--dur-fast) var(--ease);
 }
+.row-kebab { display: flex; align-items: center; justify-content: center; padding-top: 2px; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+.row:hover .row-kebab { opacity: 1; }
 .row:hover { background: var(--hover); }
 .row.dragging { opacity: .35; }
 .row-grip {
@@ -568,6 +570,7 @@ body[data-has-selection="true"] .row-check {
   transition: background var(--dur-fast) var(--ease);
 }
 .popover-item:hover { background: var(--hover); }
+.popover-item > svg, .popover-item > span > svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-muted); }
 .popover-item .label { flex: 1; }
 .popover-item .check { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
 .popover-input {
@@ -900,6 +903,24 @@ const Icon = {
     <svg viewBox="0 0 16 16" fill="none" {...p}>
       <rect x="2.5" y="3.5" width="11" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M2.5 6h11M5 2.5v2M11 2.5v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  Link: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M7 9a2.5 2.5 0 003.5 0l2-2A2.5 2.5 0 109 3.5L8 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M9 7a2.5 2.5 0 00-3.5 0l-2 2A2.5 2.5 0 107 12.5L8 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  Copy: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <rect x="5" y="5" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M3 11V4a1 1 0 011-1h7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  ),
+  MoveTo: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M2 8h9M8 5l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M13 3v10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   ),
 };
@@ -1263,6 +1284,7 @@ function useViewportWidth() {
 
 const CollapsedCtx = React.createContext({ map: {}, toggle: () => {}, setMany: () => {} });
 const SelectionCtx = React.createContext({ has: () => false, toggle: () => {}, clear: () => {}, count: 0 });
+const ItemOpsCtx = React.createContext({ copyLink: () => {}, duplicate: () => {}, move: () => {}, projects: [] });
 
 function useCollapsedStore() {
   const [map, setMap] = useState(() => readJSON(KEY_COLLAPSED, {}));
@@ -1836,9 +1858,12 @@ function ItemText({ value, onChange, onEnter, onBackspaceEmpty, autoFocus }) {
 function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions, dark, autoFocus, onEnter, highlight }) {
   const [drag, setDrag] = useContext(DragCtx);
   const selection = useContext(SelectionCtx);
+  const itemOps = useContext(ItemOpsCtx);
   const [dropPos, setDropPos] = useState(null);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const statusBtnRef = useRef(null);
+  const moveBtnRef = useRef(null);
   const rowRef = useRef(null);
   const isSrc = drag?.kind === 'item' && drag.itemId === item.id;
   const selected = selection.has(item.id);
@@ -1925,6 +1950,24 @@ function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions
           onChange={(o)=>onChange({ ...item, owner: o })}
           suggestions={ownerSuggestions}
           dark={dark}/>
+      </div>
+      <div className="row-kebab">
+        <span ref={moveBtnRef}>
+          <KebabMenu ariaLabel="Item actions" items={[
+            { label: "Copy link", icon: <Icon.Link/>, onClick: () => itemOps.copyLink(item.id) },
+            { label: "Duplicate", icon: <Icon.Copy/>, onClick: () => itemOps.duplicate(projectId, areaId, item.id) },
+            { label: "Move to area…", icon: <Icon.MoveTo/>, onClick: () => setMoveOpen(true) },
+          ]}/>
+        </span>
+        {moveOpen && (
+          <MoveToAreaPicker
+            projects={itemOps.projects}
+            sourceAreaId={areaId}
+            anchorRef={moveBtnRef}
+            onPick={(target)=>itemOps.move(projectId, areaId, item.id, target.projectId, target.areaId)}
+            onClose={()=>setMoveOpen(false)}
+          />
+        )}
       </div>
       <div className="row-actions">
         <button type="button" className="iconbtn danger" onClick={onDelete} aria-label="Delete item" title="Delete">
@@ -2265,6 +2308,76 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
 }
 
 /* ============================================================
+   Move-to-area picker (per-item action)
+   ============================================================ */
+function MoveToAreaPicker({ projects, sourceAreaId, onPick, anchorRef, onClose }) {
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const [pos, setPos] = useState({});
+  useLayoutEffect(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect) setPos(positionPopover(rect, ref.current));
+  }, [anchorRef]);
+  useOutsideClick(ref, onClose);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const options = useMemo(() => {
+    const out = [];
+    for (const p of projects || []) {
+      for (const a of (p.areas||[])) {
+        if (a.id === sourceAreaId) continue;
+        out.push({ projectId: p.id, areaId: a.id, label: a.name || "Untitled area", meta: p.name });
+      }
+    }
+    const lc = q.trim().toLowerCase();
+    if (!lc) return out.slice(0, 20);
+    return out.filter(o =>
+      o.label.toLowerCase().includes(lc) || o.meta.toLowerCase().includes(lc)
+    ).slice(0, 20);
+  }, [projects, sourceAreaId, q]);
+
+  useEffect(() => { setActive(0); }, [q]);
+
+  return (
+    <div ref={ref} className="popover" style={{ ...pos, minWidth: 280, padding: 6 }}>
+      <input ref={inputRef} className="popover-input" value={q}
+        placeholder="Move to area…"
+        onChange={e=>setQ(e.target.value)}
+        onKeyDown={e=>{
+          if (e.key === "ArrowDown") { e.preventDefault(); setActive(a => Math.min(options.length-1, a+1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setActive(a => Math.max(0, a-1)); }
+          else if (e.key === "Enter") {
+            e.preventDefault();
+            const o = options[active]; if (o) { onPick(o); onClose(); }
+          }
+        }}/>
+      <div style={{ maxHeight: 260, overflowY: "auto", marginTop: 4 }}>
+        {options.length === 0 ? (
+          <div style={{ padding: 14, color: "var(--text-muted)", fontSize: 12.5, textAlign: "center" }}>No areas match.</div>
+        ) : options.map((o, i) => (
+          <button key={`${o.projectId}:${o.areaId}`} type="button"
+            className="popover-item"
+            style={i===active ? { background: "var(--accent-soft)", color: "var(--accent-text)" } : null}
+            onMouseEnter={()=>setActive(i)}
+            onClick={()=>{ onPick(o); onClose(); }}>
+            <span className="label" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ color: "var(--text-muted)" }}>{o.meta} ›</span> {o.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    Bulk action bar (multi-select)
    ============================================================ */
 function BulkActionBar({ count, ownerSuggestions, dark, onBulkStatus, onBulkOwner, onBulkDue, onBulkDelete, onClear }) {
@@ -2552,6 +2665,59 @@ function App() {
     }
   }, [persist, requestToast]);
 
+  /* ---- Per-item actions: copy link, duplicate, move ---- */
+  const copyItemLink = useCallback((itemId) => {
+    const url = window.location.href.replace(/#.*$/, "") + "#" + itemId;
+    const fallback = () => requestToast({ msg: "Couldn't copy — link: " + url, err: true });
+    try {
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(
+          () => requestToast({ msg: "Link copied" }),
+          fallback
+        );
+      } else { fallback(); }
+    } catch { fallback(); }
+  }, [requestToast]);
+
+  const duplicateItem = useCallback((projectId, areaId, itemId) => {
+    setProjects(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const p = next.find(x => x.id === projectId); if (!p) return prev;
+      const a = p.areas.find(x => x.id === areaId); if (!a) return prev;
+      const idx = a.items.findIndex(x => x.id === itemId); if (idx < 0) return prev;
+      const src = a.items[idx];
+      const dup = { ...src, id: gid("i"), updatedAt: nowISO() };
+      a.items.splice(idx + 1, 0, dup);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const moveItem = useCallback((projectId, areaId, itemId, targetProjectId, targetAreaId) => {
+    let targetAreaName = "";
+    let targetProjectName = "";
+    setProjects(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      const sp = next.find(x => x.id === projectId);
+      const sa = sp?.areas.find(x => x.id === areaId);
+      const tp = next.find(x => x.id === targetProjectId);
+      const ta = tp?.areas.find(x => x.id === targetAreaId);
+      if (!sa || !ta) return prev;
+      const idx = sa.items.findIndex(x => x.id === itemId);
+      if (idx < 0) return prev;
+      const [moved] = sa.items.splice(idx, 1);
+      moved.updatedAt = nowISO();
+      ta.items.push(moved);
+      targetAreaName = ta.name;
+      targetProjectName = tp.name;
+      persist(next);
+      return next;
+    });
+    if (targetAreaName) {
+      requestToast({ msg: `Moved to ${targetAreaName} · ${targetProjectName}` });
+    }
+  }, [persist, requestToast]);
+
   /* ---- Multi-select bulk ops ---- */
   const itemOrder = useMemo(() => {
     const order = [];
@@ -2655,6 +2821,23 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [persist]);
 
+  /* ---- Hash-scroll on initial load (for shared item links) ---- */
+  const didHashScroll = useRef(false);
+  useEffect(() => {
+    if (!ready || didHashScroll.current) return;
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    if (!hash) return;
+    didHashScroll.current = true;
+    setTimeout(() => {
+      const el = document.querySelector(`[data-item-id="${hash}"], [data-area-id="${hash}"], [data-project-id="${hash}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("highlight-flash");
+        setTimeout(() => el.classList.remove("highlight-flash"), 1700);
+      }
+    }, 120);
+  }, [ready]);
+
   /* ---- Palette jump ---- */
   const jumpTo = useCallback((r) => {
     setTimeout(() => {
@@ -2674,6 +2857,28 @@ function App() {
   }, []);
 
   /* ---- Render ---- */
+  const selectionCtxValue = useMemo(() => ({
+    has: (id) => selectedIds.has(id),
+    toggle: toggleSelect,
+    clear: clearSelection,
+    count: selectedIds.size,
+  }), [selectedIds, toggleSelect, clearSelection]);
+
+  const itemOpsCtxValue = useMemo(() => ({
+    copyLink: copyItemLink,
+    duplicate: duplicateItem,
+    move: moveItem,
+    projects,
+  }), [copyItemLink, duplicateItem, moveItem, projects]);
+
+  const ownerSuggestionsAll = useMemo(() => {
+    const s = new Set();
+    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) {
+      if (it.owner) s.add(it.owner);
+    }
+    return Array.from(s);
+  }, [projects]);
+
   if (viewportWidth < 1024) return <MobileGate/>;
 
   if (!ready) return (
@@ -2693,25 +2898,11 @@ function App() {
     idle: "Ready", saving: "Saving…", saved: "Saved", error: "Save failed", offline: "Offline",
   }[syncState] || "Ready";
 
-  const selectionCtxValue = useMemo(() => ({
-    has: (id) => selectedIds.has(id),
-    toggle: toggleSelect,
-    clear: clearSelection,
-    count: selectedIds.size,
-  }), [selectedIds, toggleSelect, clearSelection]);
-
-  const ownerSuggestionsAll = useMemo(() => {
-    const s = new Set();
-    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) {
-      if (it.owner) s.add(it.owner);
-    }
-    return Array.from(s);
-  }, [projects]);
-
   return (
     <DragCtx.Provider value={dragState}>
     <CollapsedCtx.Provider value={collapsedStore}>
     <SelectionCtx.Provider value={selectionCtxValue}>
+    <ItemOpsCtx.Provider value={itemOpsCtxValue}>
       <div className="page">
         <header className="topbar">
           <div className="topbar-title">
@@ -2810,6 +3001,7 @@ function App() {
           />
         )}
       </div>
+    </ItemOpsCtx.Provider>
     </SelectionCtx.Provider>
     </CollapsedCtx.Provider>
     </DragCtx.Provider>
