@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Project Central</title>
+<title>Central Board</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <meta name="theme-color" content="#FAFAF9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1A1A19" media="(prefers-color-scheme: dark)">
@@ -743,6 +743,30 @@ body[data-has-selection="true"] .row-check {
 /* Project list spacing */
 .project-list { display: flex; flex-direction: column; gap: 20px; }
 
+/* Per-owner tab bar */
+.user-tabs {
+  display: inline-flex; gap: 2px;
+  padding: 3px;
+  background: var(--surface-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  margin: 8px 0 28px;
+}
+.user-tab {
+  padding: 7px 18px;
+  border-radius: var(--r-pill);
+  font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.user-tab:hover { color: var(--text-soft); }
+.user-tab[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06));
+}
+
 /* Highlight after palette jump */
 .highlight-flash { animation: flash 1.5s var(--ease); }
 @keyframes flash {
@@ -1008,6 +1032,22 @@ function emptyProject() {
     nextMilestone: "", eta: "", description: "", archived: false,
     sortOrder: 0, areas: [], updatedAt: nowISO(),
   };
+}
+
+const USERS = [
+  { id: "sidney",  label: "Sidney" },
+  { id: "ludmila", label: "Ludmila" },
+];
+// Project ownership is encoded in the project ID prefix so the sheet schema
+// doesn't have to change: ids starting with "ludmila-" belong to Ludmila,
+// everything else belongs to Sidney.
+function ownerOf(project) {
+  return String(project?.id || "").startsWith("ludmila-") ? "ludmila" : "sidney";
+}
+function withOwner(project, owner) {
+  const id = String(project.id || "");
+  const stripped = id.replace(/^ludmila-/, "");
+  return { ...project, id: owner === "ludmila" ? "ludmila-" + stripped : stripped };
 }
 
 function hashString(s) {
@@ -2476,7 +2516,7 @@ function MobileGate() {
       <div className="mobile-gate-card">
         <div className="mobile-gate-icon">🖥️</div>
         <h2>Open on desktop</h2>
-        <p>Project Central is designed for a screen at least 1024px wide. Open this page on your laptop or desktop.</p>
+        <p>Central Board is designed for a screen at least 1024px wide. Open this page on your laptop or desktop.</p>
       </div>
     </div>
   );
@@ -2511,6 +2551,13 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [highlightItemId, setHighlightItemId] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [activeOwner, setActiveOwner] = useState(() => {
+    try { return localStorage.getItem("pc_owner") || "sidney"; }
+    catch { return "sidney"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("pc_owner", activeOwner); } catch {}
+  }, [activeOwner]);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const lastSelectedRef = useRef(null);
 
@@ -2593,7 +2640,7 @@ function App() {
 
   const addProject = useCallback((name = "New project") => {
     setProjects(prev => {
-      const np = { ...emptyProject(), name, sortOrder: prev.length + 1 };
+      const np = withOwner({ ...emptyProject(), name, sortOrder: prev.length + 1 }, activeOwner);
       const next = [...prev, np];
       persist(next);
       setTimeout(()=>window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
@@ -2603,7 +2650,7 @@ function App() {
       }, 80);
       return next;
     });
-  }, [persist]);
+  }, [persist, activeOwner]);
 
   /* ---- Drag dispatcher ---- */
   useEffect(() => {
@@ -2923,18 +2970,21 @@ function App() {
     count: selectedIds.size,
   }), [selectedIds, toggleSelect, clearSelection]);
 
-  // Keep projects accessible via a ref so the context value stays referentially
-  // stable across edits — otherwise every project mutation forces every ItemRow
-  // (which consumes ItemOpsCtx) to re-render. Consumers that need the live list
-  // should call itemOps.getProjects() instead of reading itemOps.projects.
+  // Keep projects + active-owner accessible via a ref so the context value
+  // stays referentially stable across edits — otherwise every project
+  // mutation would force every ItemRow (which consumes ItemOpsCtx) to
+  // re-render. Consumers that need the live, owner-scoped list should call
+  // itemOps.getProjects().
   const projectsRef = useRef(projects);
+  const activeOwnerRef = useRef(activeOwner);
   useEffect(() => { projectsRef.current = projects; }, [projects]);
+  useEffect(() => { activeOwnerRef.current = activeOwner; }, [activeOwner]);
 
   const itemOpsCtxValue = useMemo(() => ({
     copyLink: copyItemLink,
     duplicate: duplicateItem,
     move: moveItem,
-    getProjects: () => projectsRef.current,
+    getProjects: () => projectsRef.current.filter(p => ownerOf(p) === activeOwnerRef.current),
   }), [copyItemLink, duplicateItem, moveItem]);
 
   const ownerSuggestionsAll = useMemo(() => {
@@ -2972,7 +3022,7 @@ function App() {
       <div className="page">
         <header className="topbar">
           <div className="topbar-title">
-            <h1>Project Central</h1>
+            <h1>Central Board</h1>
             <span className="topbar-sub">
               <span className={`sync-dot ${syncState === "saving" ? "saving" : syncState === "saved" ? "saved" : syncState === "error" ? "error" : ""}`}/>
               {syncLabel} · {projects.length} project{projects.length===1?"":"s"}
@@ -2995,14 +3045,28 @@ function App() {
           </div>
         </header>
 
+        <div className="user-tabs" role="tablist" aria-label="Board owner">
+          {USERS.map(u => (
+            <button key={u.id} type="button"
+              className="user-tab"
+              role="tab"
+              aria-selected={activeOwner === u.id}
+              onClick={()=>setActiveOwner(u.id)}>
+              {u.label}
+            </button>
+          ))}
+        </div>
+
         {(() => {
-          const archivedCount = projects.filter(p => p.archived).length;
-          const visible = showArchived ? projects : projects.filter(p => !p.archived);
-          if (projects.length === 0) {
+          const mine = projects.filter(p => ownerOf(p) === activeOwner);
+          const archivedCount = mine.filter(p => p.archived).length;
+          const visible = showArchived ? mine : mine.filter(p => !p.archived);
+          const currentLabel = USERS.find(u => u.id === activeOwner)?.label || activeOwner;
+          if (mine.length === 0) {
             return (
               <div className="empty-state">
-                <h2>Start a project</h2>
-                <p>Create your first project to begin tracking work.</p>
+                <h2>{currentLabel}'s board is empty</h2>
+                <p>Create the first project for this board to start tracking work.</p>
                 <button type="button" className="btn btn-primary" onClick={()=>addProject()}>
                   <Icon.Plus/> Add Project
                 </button>
@@ -3048,7 +3112,7 @@ function App() {
         )}
         {paletteOpen && (
           <CommandPalette
-            projects={projects}
+            projects={projects.filter(p => ownerOf(p) === activeOwner)}
             onClose={()=>setPaletteOpen(false)}
             onAddProject={(name)=>addProject(name)}
             onJump={jumpTo}
@@ -3084,7 +3148,7 @@ class ErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) { return { error }; }
   componentDidCatch(error, info) {
     this.setState({ info });
-    try { console.error("Project Central render crash:", error, info); } catch {}
+    try { console.error("Central Board render crash:", error, info); } catch {}
   }
   render() {
     if (!this.state.error) return this.props.children;
