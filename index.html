@@ -1298,7 +1298,7 @@ function useViewportWidth() {
 
 const CollapsedCtx = React.createContext({ map: {}, toggle: () => {}, setMany: () => {} });
 const SelectionCtx = React.createContext({ has: () => false, toggle: () => {}, clear: () => {}, count: 0 });
-const ItemOpsCtx = React.createContext({ copyLink: () => {}, duplicate: () => {}, move: () => {}, projects: [] });
+const ItemOpsCtx = React.createContext({ copyLink: () => {}, duplicate: () => {}, move: () => {}, getProjects: () => [] });
 
 function useCollapsedStore() {
   const [map, setMap] = useState(() => readJSON(KEY_COLLAPSED, {}));
@@ -1975,7 +1975,7 @@ function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions
         </span>
         {moveOpen && (
           <MoveToAreaPicker
-            projects={itemOps.projects}
+            projects={itemOps.getProjects()}
             sourceAreaId={areaId}
             anchorRef={moveBtnRef}
             onPick={(target)=>itemOps.move(projectId, areaId, item.id, target.projectId, target.areaId)}
@@ -2239,8 +2239,9 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
         <button type="button" className="project-toggle"
           onClick={()=>setProjectCollapsed(!projectCollapsed)}
           aria-label={projectCollapsed ? "Expand project" : "Collapse project"}
+          aria-expanded={!projectCollapsed}
           title={projectCollapsed ? "Expand" : "Collapse"}>
-          <Icon.ChevronDown style={{ width: 14, height: 14, transform: `rotate(${projectCollapsed ? -90 : 0}deg)`, transition: "transform var(--dur-fast) var(--ease)" }}/>
+          <Icon.Chevron style={{ width: 14, height: 14, transform: `rotate(${projectCollapsed ? 0 : 90}deg)`, transition: "transform var(--dur-fast) var(--ease)" }}/>
         </button>
         <div className="project-grip"
           onMouseDown={()=>setDragArmed(true)}
@@ -2374,7 +2375,7 @@ function MoveToAreaPicker({ projects, sourceAreaId, onPick, anchorRef, onClose }
 
   useEffect(() => { setActive(0); }, [q]);
 
-  return (
+  return ReactDOM.createPortal(
     <div ref={ref} className="popover" style={{ ...pos, minWidth: 280, padding: 6 }}>
       <input ref={inputRef} className="popover-input" value={q}
         placeholder="Move to area…"
@@ -2402,7 +2403,8 @@ function MoveToAreaPicker({ projects, sourceAreaId, onPick, anchorRef, onClose }
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -2760,20 +2762,41 @@ function App() {
     const range = ev && ev.shiftKey;
     setSelectedIds(prev => {
       const next = new Set(prev);
+      let didRange = false;
       if (range && lastSelectedRef.current && lastSelectedRef.current !== itemId) {
         const a = itemOrder.indexOf(lastSelectedRef.current);
         const b = itemOrder.indexOf(itemId);
         if (a >= 0 && b >= 0) {
           const [lo, hi] = a < b ? [a, b] : [b, a];
           for (let i = lo; i <= hi; i++) next.add(itemOrder[i]);
+          didRange = true;
         }
-      } else {
+      }
+      if (!didRange) {
         if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
       }
       lastSelectedRef.current = itemId;
       return next;
     });
   }, [itemOrder]);
+
+  // Prune selectedIds + lastSelectedRef when items disappear (delete/move/area-delete/project-delete).
+  useEffect(() => {
+    const live = new Set();
+    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) live.add(it.id);
+    setSelectedIds(prev => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (live.has(id)) next.add(id); else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    if (lastSelectedRef.current && !live.has(lastSelectedRef.current)) {
+      lastSelectedRef.current = null;
+    }
+  }, [projects]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -2799,6 +2822,8 @@ function App() {
   const bulkDelete = useCallback(() => {
     const ids = selectedIds;
     if (!ids.size) return;
+    const prevSelection = new Set(ids);
+    const prevLast = lastSelectedRef.current;
     let snapshots = [];
     setProjects(prev => {
       const next = prev.map(p => ({
@@ -2830,6 +2855,8 @@ function App() {
             persist(next);
             return next;
           });
+          setSelectedIds(prevSelection);
+          lastSelectedRef.current = prevLast;
         } },
       });
     }
@@ -2893,12 +2920,19 @@ function App() {
     count: selectedIds.size,
   }), [selectedIds, toggleSelect, clearSelection]);
 
+  // Keep projects accessible via a ref so the context value stays referentially
+  // stable across edits — otherwise every project mutation forces every ItemRow
+  // (which consumes ItemOpsCtx) to re-render. Consumers that need the live list
+  // should call itemOps.getProjects() instead of reading itemOps.projects.
+  const projectsRef = useRef(projects);
+  useEffect(() => { projectsRef.current = projects; }, [projects]);
+
   const itemOpsCtxValue = useMemo(() => ({
     copyLink: copyItemLink,
     duplicate: duplicateItem,
     move: moveItem,
-    projects,
-  }), [copyItemLink, duplicateItem, moveItem, projects]);
+    getProjects: () => projectsRef.current,
+  }), [copyItemLink, duplicateItem, moveItem]);
 
   const ownerSuggestionsAll = useMemo(() => {
     const s = new Set();
@@ -3037,7 +3071,72 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ============================================================
+   Error Boundary — converts render-time crashes (the classic
+   black-screen-after-loading) into a readable error card with
+   the actual error message, stack trace, and a reload button.
+   ============================================================ */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null, info: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) {
+    this.setState({ info });
+    try { console.error("Project Central render crash:", error, info); } catch {}
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    const msg = this.state.error?.message || String(this.state.error);
+    const stack = this.state.info?.componentStack || this.state.error?.stack || "";
+    return (
+      <div style={{
+        maxWidth: 720, margin: "60px auto", padding: 28,
+        background: "var(--surface, #fff)", color: "var(--text, #1A1A19)",
+        border: "1px solid var(--border, #E5E5E5)", borderRadius: 16,
+        fontFamily: "ui-sans-serif, -apple-system, sans-serif",
+        boxShadow: "0 12px 40px rgba(0,0,0,.08)",
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Something broke while rendering.</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted, #666)", marginBottom: 16 }}>
+          Your data is safe — this is a UI crash, not a save failure. Reload to try again.
+        </div>
+        <pre style={{
+          background: "var(--surface-elev, #F6F6F6)", padding: 12, borderRadius: 8,
+          fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, monospace",
+          whiteSpace: "pre-wrap", wordBreak: "break-word", overflow: "auto", maxHeight: 200,
+          margin: 0, marginBottom: 16,
+        }}>{msg}</pre>
+        {stack && (
+          <details style={{ marginBottom: 16 }}>
+            <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text-muted, #666)" }}>Component stack</summary>
+            <pre style={{
+              fontSize: 11, fontFamily: "ui-monospace, monospace",
+              whiteSpace: "pre-wrap", marginTop: 8, color: "var(--text-muted, #666)",
+            }}>{stack}</pre>
+          </details>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => window.location.reload()}
+            style={{
+              padding: "8px 16px", borderRadius: 8, border: 0,
+              background: "var(--accent, #6B5BFF)", color: "#fff",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+            }}>Reload</button>
+          <button type="button" onClick={() => this.setState({ error: null, info: null })}
+            style={{
+              padding: "8px 16px", borderRadius: 8,
+              background: "transparent", color: "var(--text-muted, #666)",
+              border: "1px solid var(--border, #E5E5E5)",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+            }}>Try again without reload</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorBoundary><App/></ErrorBoundary>
+);
 </script>
 </body>
 </html>
