@@ -217,6 +217,10 @@ textarea { resize: none; }
 .meta-input::placeholder { color: var(--text-faint); }
 .meta-input:hover { background: var(--hover); }
 .meta-input:focus { background: var(--surface-elev); border-color: var(--border-strong); outline: none; }
+.meta-date { color-scheme: light dark; cursor: pointer; min-width: 160px; }
+.meta-date:not(:focus):invalid { color: var(--text-faint); }
+.meta-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+.meta-date:hover::-webkit-calendar-picker-indicator { opacity: 1; }
 
 /* Filter bar */
 .filterbar {
@@ -2295,9 +2299,8 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
             onChange={e=>onChange({ ...project, nextMilestone: e.target.value })}/>
         </div>
         <div className="meta-field">
-          <label className="meta-label">ETA</label>
-          <input className="meta-input" value={project.eta}
-            placeholder="Fri · Mar 4 · 2w"
+          <label className="meta-label">Target date</label>
+          <input type="date" className="meta-input meta-date" value={project.eta || ""}
             onChange={e=>onChange({ ...project, eta: e.target.value })}/>
         </div>
       </div>
