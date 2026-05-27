@@ -1298,7 +1298,7 @@ function useViewportWidth() {
 
 const CollapsedCtx = React.createContext({ map: {}, toggle: () => {}, setMany: () => {} });
 const SelectionCtx = React.createContext({ has: () => false, toggle: () => {}, clear: () => {}, count: 0 });
-const ItemOpsCtx = React.createContext({ copyLink: () => {}, duplicate: () => {}, move: () => {}, projects: [] });
+const ItemOpsCtx = React.createContext({ copyLink: () => {}, duplicate: () => {}, move: () => {}, getProjects: () => [] });
 
 function useCollapsedStore() {
   const [map, setMap] = useState(() => readJSON(KEY_COLLAPSED, {}));
@@ -1975,7 +1975,7 @@ function ItemRow({ projectId, areaId, item, onChange, onDelete, ownerSuggestions
         </span>
         {moveOpen && (
           <MoveToAreaPicker
-            projects={itemOps.projects}
+            projects={itemOps.getProjects()}
             sourceAreaId={areaId}
             anchorRef={moveBtnRef}
             onPick={(target)=>itemOps.move(projectId, areaId, item.id, target.projectId, target.areaId)}
@@ -2375,7 +2375,7 @@ function MoveToAreaPicker({ projects, sourceAreaId, onPick, anchorRef, onClose }
 
   useEffect(() => { setActive(0); }, [q]);
 
-  return (
+  return ReactDOM.createPortal(
     <div ref={ref} className="popover" style={{ ...pos, minWidth: 280, padding: 6 }}>
       <input ref={inputRef} className="popover-input" value={q}
         placeholder="Move to area…"
@@ -2403,7 +2403,8 @@ function MoveToAreaPicker({ projects, sourceAreaId, onPick, anchorRef, onClose }
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -2761,20 +2762,41 @@ function App() {
     const range = ev && ev.shiftKey;
     setSelectedIds(prev => {
       const next = new Set(prev);
+      let didRange = false;
       if (range && lastSelectedRef.current && lastSelectedRef.current !== itemId) {
         const a = itemOrder.indexOf(lastSelectedRef.current);
         const b = itemOrder.indexOf(itemId);
         if (a >= 0 && b >= 0) {
           const [lo, hi] = a < b ? [a, b] : [b, a];
           for (let i = lo; i <= hi; i++) next.add(itemOrder[i]);
+          didRange = true;
         }
-      } else {
+      }
+      if (!didRange) {
         if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
       }
       lastSelectedRef.current = itemId;
       return next;
     });
   }, [itemOrder]);
+
+  // Prune selectedIds + lastSelectedRef when items disappear (delete/move/area-delete/project-delete).
+  useEffect(() => {
+    const live = new Set();
+    for (const p of projects) for (const a of (p.areas||[])) for (const it of (a.items||[])) live.add(it.id);
+    setSelectedIds(prev => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (live.has(id)) next.add(id); else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    if (lastSelectedRef.current && !live.has(lastSelectedRef.current)) {
+      lastSelectedRef.current = null;
+    }
+  }, [projects]);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -2800,6 +2822,8 @@ function App() {
   const bulkDelete = useCallback(() => {
     const ids = selectedIds;
     if (!ids.size) return;
+    const prevSelection = new Set(ids);
+    const prevLast = lastSelectedRef.current;
     let snapshots = [];
     setProjects(prev => {
       const next = prev.map(p => ({
@@ -2831,6 +2855,8 @@ function App() {
             persist(next);
             return next;
           });
+          setSelectedIds(prevSelection);
+          lastSelectedRef.current = prevLast;
         } },
       });
     }
@@ -2894,12 +2920,19 @@ function App() {
     count: selectedIds.size,
   }), [selectedIds, toggleSelect, clearSelection]);
 
+  // Keep projects accessible via a ref so the context value stays referentially
+  // stable across edits — otherwise every project mutation forces every ItemRow
+  // (which consumes ItemOpsCtx) to re-render. Consumers that need the live list
+  // should call itemOps.getProjects() instead of reading itemOps.projects.
+  const projectsRef = useRef(projects);
+  useEffect(() => { projectsRef.current = projects; }, [projects]);
+
   const itemOpsCtxValue = useMemo(() => ({
     copyLink: copyItemLink,
     duplicate: duplicateItem,
     move: moveItem,
-    projects,
-  }), [copyItemLink, duplicateItem, moveItem, projects]);
+    getProjects: () => projectsRef.current,
+  }), [copyItemLink, duplicateItem, moveItem]);
 
   const ownerSuggestionsAll = useMemo(() => {
     const s = new Set();
