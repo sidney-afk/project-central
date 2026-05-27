@@ -252,6 +252,23 @@ textarea { resize: none; }
 .filterbar-aux { color: var(--text-muted); font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: var(--r-sm); }
 .filterbar-aux:hover { background: var(--hover); color: var(--text); }
 
+/* Expand / collapse-all icon row, sits between the filter chips and the first area */
+.areas-toolbar {
+  display: flex; align-items: center; gap: 2px;
+  margin: 14px 0 6px;
+  padding-left: 2px;
+}
+.areas-toolbar-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: var(--r-sm);
+  color: var(--text-faint);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.areas-toolbar-btn:hover { background: var(--hover); color: var(--text); }
+.areas-toolbar-btn svg { width: 15px; height: 15px; }
+
 /* Areas */
 .areas { margin-top: 8px; }
 .area { margin-top: 24px; }
@@ -866,6 +883,16 @@ const Icon = {
   Chevron: (p) => (
     <svg viewBox="0 0 16 16" fill="none" {...p}>
       <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  ChevronsDown: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M3.5 5l4.5 4.5L12.5 5M3.5 10l4.5 4.5L12.5 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  ChevronsUp: (p) => (
+    <svg viewBox="0 0 16 16" fill="none" {...p}>
+      <path d="M3.5 11l4.5-4.5L12.5 11M3.5 6l4.5-4.5L12.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
   Plus: (p) => (
@@ -2178,7 +2205,7 @@ function AreaSection({ projectId, area, filter, onChange, onDelete, onDeleteItem
 /* ============================================================
    FilterBar
    ============================================================ */
-function FilterBar({ counts, active, onChange, onCollapseAll, onExpandAll }) {
+function FilterBar({ counts, active, onChange }) {
   const chips = [
     { key: "all", label: "All", count: counts.total },
     ...ITEM_STATUSES.map(s => ({ key: s, label: ITEM_STATUS_LABEL[s], count: counts[s] || 0 })),
@@ -2194,9 +2221,21 @@ function FilterBar({ counts, active, onChange, onCollapseAll, onExpandAll }) {
           {c.count > 0 && <span className="count">{c.count}</span>}
         </button>
       ))}
-      <div className="filterbar-spacer"/>
-      <button type="button" className="filterbar-aux" onClick={onExpandAll}>Expand all</button>
-      <button type="button" className="filterbar-aux" onClick={onCollapseAll}>Collapse all</button>
+    </div>
+  );
+}
+
+function AreasToolbar({ onExpandAll, onCollapseAll }) {
+  return (
+    <div className="areas-toolbar">
+      <button type="button" className="areas-toolbar-btn" onClick={onExpandAll}
+        aria-label="Expand all areas" title="Expand all areas">
+        <Icon.ChevronsDown/>
+      </button>
+      <button type="button" className="areas-toolbar-btn" onClick={onCollapseAll}
+        aria-label="Collapse all areas" title="Collapse all areas">
+        <Icon.ChevronsUp/>
+      </button>
     </div>
   );
 }
@@ -2347,7 +2386,11 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
       )}
 
       {!projectCollapsed && (
-      <FilterBar counts={counts} active={filter} onChange={setFilter}
+      <FilterBar counts={counts} active={filter} onChange={setFilter}/>
+      )}
+
+      {!projectCollapsed && project.areas && project.areas.length > 0 && (
+      <AreasToolbar
         onExpandAll={()=>setManyCollapsed(onAllAreaIds, false)}
         onCollapseAll={()=>setManyCollapsed(onAllAreaIds, true)}/>
       )}
