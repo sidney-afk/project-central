@@ -2647,14 +2647,45 @@ function App() {
     })();
   }, [requestToast]);
 
-  /* ---- Persist ---- */
+  /* ---- Persist ----
+     Serializes POSTs: only one save in flight at a time. If a new save
+     is requested while one is running, the latest state is kept in
+     pendingRef and saved as soon as the current save finishes. Without
+     this, two concurrent POSTs (each doing Clear → Append on the same
+     sheet) race and the second one's data ends up appended on top of
+     the first one's, duplicating every row. */
+  const inFlightRef = useRef(false);
+  const pendingRef = useRef(null);
   const persist = useCallback((next, { immediate = false } = {}) => {
     saveLocal(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSyncState("saving");
     const flush = async () => {
-      try { await apiSave(next); setSyncState("saved"); }
-      catch { setSyncState("error"); requestToast({ msg: "Save failed (kept local copy)", err: true }); }
+      if (inFlightRef.current) {
+        // A save is already running. Queue this state — the running
+        // save will pick it up when it finishes.
+        pendingRef.current = next;
+        return;
+      }
+      inFlightRef.current = true;
+      try {
+        let toSave = next;
+        while (toSave) {
+          const current = toSave;
+          toSave = null;
+          await apiSave(current);
+          if (pendingRef.current) {
+            toSave = pendingRef.current;
+            pendingRef.current = null;
+          }
+        }
+        setSyncState("saved");
+      } catch {
+        setSyncState("error");
+        requestToast({ msg: "Save failed (kept local copy)", err: true });
+      } finally {
+        inFlightRef.current = false;
+      }
     };
     if (immediate) { flush(); return; }
     saveTimer.current = setTimeout(flush, 900);
