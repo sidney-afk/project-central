@@ -2239,8 +2239,9 @@ function ProjectCard({ project, onChange, onDelete, onDeleteItem, dark, focusSta
         <button type="button" className="project-toggle"
           onClick={()=>setProjectCollapsed(!projectCollapsed)}
           aria-label={projectCollapsed ? "Expand project" : "Collapse project"}
+          aria-expanded={!projectCollapsed}
           title={projectCollapsed ? "Expand" : "Collapse"}>
-          <Icon.ChevronDown style={{ width: 14, height: 14, transform: `rotate(${projectCollapsed ? -90 : 0}deg)`, transition: "transform var(--dur-fast) var(--ease)" }}/>
+          <Icon.Chevron style={{ width: 14, height: 14, transform: `rotate(${projectCollapsed ? 0 : 90}deg)`, transition: "transform var(--dur-fast) var(--ease)" }}/>
         </button>
         <div className="project-grip"
           onMouseDown={()=>setDragArmed(true)}
@@ -3037,7 +3038,72 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ============================================================
+   Error Boundary — converts render-time crashes (the classic
+   black-screen-after-loading) into a readable error card with
+   the actual error message, stack trace, and a reload button.
+   ============================================================ */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null, info: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) {
+    this.setState({ info });
+    try { console.error("Project Central render crash:", error, info); } catch {}
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    const msg = this.state.error?.message || String(this.state.error);
+    const stack = this.state.info?.componentStack || this.state.error?.stack || "";
+    return (
+      <div style={{
+        maxWidth: 720, margin: "60px auto", padding: 28,
+        background: "var(--surface, #fff)", color: "var(--text, #1A1A19)",
+        border: "1px solid var(--border, #E5E5E5)", borderRadius: 16,
+        fontFamily: "ui-sans-serif, -apple-system, sans-serif",
+        boxShadow: "0 12px 40px rgba(0,0,0,.08)",
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Something broke while rendering.</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted, #666)", marginBottom: 16 }}>
+          Your data is safe — this is a UI crash, not a save failure. Reload to try again.
+        </div>
+        <pre style={{
+          background: "var(--surface-elev, #F6F6F6)", padding: 12, borderRadius: 8,
+          fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, monospace",
+          whiteSpace: "pre-wrap", wordBreak: "break-word", overflow: "auto", maxHeight: 200,
+          margin: 0, marginBottom: 16,
+        }}>{msg}</pre>
+        {stack && (
+          <details style={{ marginBottom: 16 }}>
+            <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text-muted, #666)" }}>Component stack</summary>
+            <pre style={{
+              fontSize: 11, fontFamily: "ui-monospace, monospace",
+              whiteSpace: "pre-wrap", marginTop: 8, color: "var(--text-muted, #666)",
+            }}>{stack}</pre>
+          </details>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => window.location.reload()}
+            style={{
+              padding: "8px 16px", borderRadius: 8, border: 0,
+              background: "var(--accent, #6B5BFF)", color: "#fff",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+            }}>Reload</button>
+          <button type="button" onClick={() => this.setState({ error: null, info: null })}
+            style={{
+              padding: "8px 16px", borderRadius: 8,
+              background: "transparent", color: "var(--text-muted, #666)",
+              border: "1px solid var(--border, #E5E5E5)",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+            }}>Try again without reload</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorBoundary><App/></ErrorBoundary>
+);
 </script>
 </body>
 </html>
